@@ -13,7 +13,7 @@ struct stivale_header {
     uint16_t framebuffer_height;
     uint16_t framebuffer_bpp;
     uint64_t entry_point;
-} __attribute__((packed));
+} __attribute__((__packed__));
 
 /* --- Struct --------------------------------------------------------------- */
 /*  Information passed from the bootloader to the kernel                      */
@@ -23,28 +23,24 @@ struct stivale_module {
     uint64_t end;
     char string[128];
     uint64_t next;
-} __attribute__((packed));
+} __attribute__((__packed__));
 
-enum {
-    STIVALE_MMAP_USABLE = 1,
-    STIVALE_MMAP_RESERVED = 2,
-    STIVALE_MMAP_ACPI_RECLAIMABLE = 3,
-    STIVALE_MMAP_ACPI_NVS = 4,
-    STIVALE_MMAP_BAD_MEMORY = 5,
-    STIVALE_MMAP_KERNEL_AND_MODULES = 10,
-    STIVALE_MMAP_BOOTLOADER_RECLAIMABLE = 0x1000
-};
+#define STIVALE_MMAP_USABLE                 1
+#define STIVALE_MMAP_RESERVED               2
+#define STIVALE_MMAP_ACPI_RECLAIMABLE       3
+#define STIVALE_MMAP_ACPI_NVS               4
+#define STIVALE_MMAP_BAD_MEMORY             5
+#define STIVALE_MMAP_KERNEL_AND_MODULES     10
+#define STIVALE_MMAP_BOOTLOADER_RECLAIMABLE 0x1000
 
 struct stivale_mmap_entry {
     uint64_t base;
     uint64_t length;
     uint32_t type;
     uint32_t unused;
-} __attribute__((packed));
+} __attribute__((__packed__));
 
-enum {
-    STIVALE_FBUF_MMODEL_RGB = 1
-};
+#define STIVALE_FBUF_MMODEL_RGB 1
 
 struct stivale_struct {
     uint64_t cmdline;
@@ -68,6 +64,6 @@ struct stivale_struct {
     uint8_t  fb_green_mask_shift;
     uint8_t  fb_blue_mask_size;
     uint8_t  fb_blue_mask_shift;
-} __attribute__((packed));
+} __attribute__((__packed__));
 
 #endif

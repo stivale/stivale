@@ -10,20 +10,28 @@ In order to have a stivale compliant kernel, one must have a kernel executable
 in the `elf64` or `elf32` format and have a `.stivalehdr` section (described below).
 Other executable formats are not supported.
 
-stivale will recognise whether the ELF file is 32-bit or 64-bit and load the kernel
-into the appropriate CPU mode.
+stivale will recognise whether the ELF file is 32-bit or 64-bit and put the CPU into
+the appropriate mode before loading the kernel.
 
 stivale natively supports (only for 64-bit kernels) and encourages higher half kernels.
-The kernel can load itself at `0xffffffff80000000` (as defined in the linker script)
-and the bootloader will take care of everything, no AT linker script directives needed.
+The kernel can load itself at `0xffffffff80000000 + phys_base` (as defined in the linker script),
+and the bootloader will take care of everything else, no AT linker script directives needed.
+
+`phys_base` represents the actual physical base address of the kernel.
+E.g.: having `. = 0xffffffff80000000 + 2M;` will load the kernel at physical address
+2MiB, and at virtual address `0xffffffff80200000`.
+
+For relocatable kernels, the bootloader may change the load addresses of the sections,
+especially if KASLR is enabled in the bootloader's configuration.
 
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
 
-*Note: In order to maintain compatibility with Limine and other stivale-compliant*
-*bootloaders it is strongly advised never to load the kernel or any of its*
-*sections below the 1 MiB physical memory mark. This may work with some stivale*
-*loaders, but it WILL NOT work with Limine and it's explicitly discouraged.*
+In order to maintain compatibility with Limine and other stivale-compliant
+bootloaders it is strongly advised never to load the kernel or any of its
+sections below the 1 MiB physical memory mark. This may work with some stivale
+loaders, but it WILL NOT work with Limine and it's explicitly discouraged.
+2MiB or higher is the recommended physical base address for maximum compatibility.
 
 ## Kernel entry machine state
 
@@ -72,7 +80,7 @@ PIC/APIC IRQs are all masked.
 non-null, an invalid return address of 0 is pushed to the stack before jumping
 to the kernel.
 
-`rdi` will point to the stivale structure (described below).
+`rdi` will contain the physical address of the stivale structure (described below).
 
 All other general purpose registers are set to 0.
 
@@ -101,7 +109,7 @@ PIC/APIC IRQs are all masked.
 `esp` is set to the requested stack as per stivale header. An invalid return address
 of 0 is pushed to the stack before jumping to the kernel.
 
-A pointer to the stivale structure (described below) is pushed onto this stack
+The physical address of the stivale structure (described below) is pushed onto this stack
 before the entry point is called.
 
 All other general purpose registers are set to 0.
@@ -168,17 +176,17 @@ struct stivale_header {
 The stivale structure returned by the bootloader looks like this:
 ```c
 struct stivale_struct {
-    uint64_t cmdline;               // Pointer to a null-terminated cmdline
-    uint64_t memory_map_addr;       // Pointer to the memory map (entries described below)
+    uint64_t cmdline;               // Physical address of a null-terminated cmdline
+    uint64_t memory_map_addr;       // Physical address of the memory map (entries described below)
     uint64_t memory_map_entries;    // Count of memory map entries
-    uint64_t framebuffer_addr;      // Address of the framebuffer and related info
-    uint16_t framebuffer_pitch;
-    uint16_t framebuffer_width;
+    uint64_t framebuffer_addr;      // Physical address of the framebuffer and related info
+    uint16_t framebuffer_pitch;     // Pitch in bytes
+    uint16_t framebuffer_width;     // Width and height in pixels
     uint16_t framebuffer_height;
-    uint16_t framebuffer_bpp;
-    uint64_t rsdp;                  // Pointer to the ACPI RSDP structure
+    uint16_t framebuffer_bpp;       // Bits per pixel
+    uint64_t rsdp;                  // Physical address the ACPI RSDP structure
     uint64_t module_count;          // Count of modules that stivale loaded according to config
-    uint64_t modules;               // Pointer to the first entry in the linked list of modules (described below)
+    uint64_t modules;               // Physical address of the first entry in the linked list of modules (described below)
     uint64_t epoch;                 // UNIX epoch at boot, read from system RTC
     uint64_t flags;                 // Flags
                                     // bit 0: 1 if booted with BIOS, 0 if booted with UEFI
@@ -199,7 +207,7 @@ struct stivale_struct {
 
 ```c
 struct mmap_entry {
-    uint64_t base;      // Base of the memory section
+    uint64_t base;      // Physical address of base of the memory section
     uint64_t length;    // Length of the section
     uint32_t type;      // Type (described below)
     uint32_t unused;
@@ -239,7 +247,7 @@ structures.
 A module structure looks like this:
 ```c
 struct stivale_module {
-    uint64_t begin;         // Address where the module is loaded
+    uint64_t begin;         // Physical address where the module is loaded
     uint64_t end;           // End address of the module
     char     string[128];   // String passed to the module (by config file)
     uint64_t next;          // Pointer to the next module (if any), check module_count

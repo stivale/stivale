@@ -10,20 +10,31 @@ In order to have a stivale2 compliant kernel, one must have a kernel executable
 in the `elf64` or `elf32` format and have a `.stivale2hdr` section (described below).
 Other executable formats are not supported.
 
-stivale2 will recognise whether the ELF file is 32-bit or 64-bit and load the kernel
-into the appropriate CPU mode.
+stivale2 will recognise whether the ELF file is 32-bit or 64-bit and put the CPU into
+the appropriate mode before loading the kernel.
 
 stivale2 natively supports (only for 64-bit kernels) and encourages higher half kernels.
-The kernel can load itself at `0xffffffff80000000` or higher (as defined in the linker script)
-and the bootloader will take care of everything, no AT linker script directives needed.
+The kernel can load itself at `0xffffffff80000000 + phys_base` (as defined in the linker script)
+and the bootloader will take care of everything else, no AT linker script directives needed.
+
+`phys_base` represents the actual physical base address of the kernel.
+E.g.: having `. = 0xffffffff80000000 + 2M;` will load the kernel at physical address
+2MiB, and at virtual address `0xffffffff80200000`.
+
+For relocatable kernels, the bootloader may change the load addresses of the sections,
+especially if KASLR is enabled in the bootloader's configuration.
 
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
 
-*Note: In order to maintain compatibility with Limine and other stivale2-compliant*
-*bootloaders it is strongly advised never to load the kernel or any of its*
-*sections below the 1 MiB physical memory mark. This may work with some stivale2*
-*loaders, but it WILL NOT work with Limine and it's explicitly discouraged.*
+In order to maintain compatibility with Limine and other stivale2-compliant
+bootloaders it is strongly advised never to load the kernel or any of its
+sections below the 1 MiB physical memory mark. This may work with some stivale2
+loaders, but it WILL NOT work with Limine and it's explicitly discouraged.
+2MiB or higher is the recommended physical base address for maximum compatibility.
+
+Pointers that can be virtual addresses instead of physical addresses for 64-bit
+higher half stivale2 kernels are gonna be marked with a *.
 
 ## Kernel entry machine state
 
@@ -72,7 +83,7 @@ PIC/APIC IRQs are all masked.
 non-null, an invalid return address of 0 is pushed to the stack before jumping
 to the kernel.
 
-`rdi` will point to the stivale2 structure (described below).
+`rdi` will contain the physical address of the stivale2 structure (described below).
 
 All other general purpose registers are set to 0.
 
@@ -101,7 +112,7 @@ PIC/APIC IRQs are all masked.
 `esp` is set to the requested stack as per stivale2 header. An invalid return address
 of 0 is pushed to the stack before jumping to the kernel.
 
-A pointer to the stivale2 structure (described below) is pushed onto this stack
+The physical address of the stivale2 structure (described below) is pushed onto this stack
 before the entry point is called.
 
 All other general purpose registers are set to 0.
@@ -154,7 +165,7 @@ struct stivale2_header {
                             //        instead. Presently reserved and unused.
                             // All other bits are undefined and must be 0.
 
-    uint64_t tags;          // Pointer to the first of the linked list of tags.
+    uint64_t tags;          // Pointer* to the first of the linked list of tags.
                             // see "stivale2 header tags" section.
                             // NULL = no tags.
 } __attribute__((packed));
@@ -184,7 +195,7 @@ struct stivale2_hdr_tag {
 The `identifier` field identifies what feature the tag is requesting from the
 bootloader.
 
-The `next` field points to another tag in the linked list. A NULL value determines
+The `next` field points* to another tag in the linked list. A NULL value determines
 the end of the linked list.
 
 Tag structures can have more than just these 2 members, but these 2 members MUST
@@ -256,7 +267,7 @@ struct stivale2_struct {
     char bootloader_brand[64];    // Bootloader null-terminated brand string
     char bootloader_version[64];  // Bootloader null-terminated version string
 
-    uint64_t tags;          // Pointer to the first of the linked list of tags.
+    uint64_t tags;          // Physical address of the first of the linked list of tags.
                             // see "stivale2 structure tags" section.
                             // NULL = no tags.
 } __attribute__((packed));
@@ -265,7 +276,8 @@ struct stivale2_struct {
 ### stivale2 structure tags
 
 These tags work *very* similarly to the header tags, with the main difference being
-that these tags are returned to the kernel by the bootloader, instead.
+that these tags are returned to the kernel by the bootloader, and that `next` pointers
+are physical addresses, instead.
 
 See "stivale2 header tags".
 
@@ -282,7 +294,7 @@ the bootloader.
 struct stivale2_struct_tag_cmdline {
     uint64_t identifier;          // Identifier: 0xe5e76a1b4597a781
     uint64_t next;
-    uint64_t cmdline;             // Pointer to a null-terminated cmdline
+    uint64_t cmdline;             // Physical pointer to a null-terminated cmdline
 } __attribute__((packed));
 ```
 
@@ -303,9 +315,9 @@ struct stivale2_struct_tag_memmap {
 
 ```c
 struct stivale2_mmap_entry {
-    uint64_t base;      // Base of the memory section
+    uint64_t base;      // Physical address of base of the memory section
     uint64_t length;    // Length of the section
-    enum stivale2_mmap_type type;  // Type (described below)
+    uint32_t type;      // Type (described below)
     uint32_t unused;
 } __attribute__((packed));
 ```
@@ -346,7 +358,7 @@ This tag reports to the kernel the currently set up framebuffer details, if any.
 struct stivale2_struct_tag_framebuffer {
     uint64_t identifier;          // Identifier: 0x506461d2950408fa
     uint64_t next;
-    uint64_t framebuffer_addr;    // Address of the framebuffer and related info
+    uint64_t framebuffer_addr;    // Physical address of the framebuffer
     uint16_t framebuffer_width;   // Width and height in pixels
     uint16_t framebuffer_height;
     uint16_t framebuffer_pitch;   // Pitch in bytes
@@ -385,8 +397,8 @@ struct stivale2_struct_tag_modules {
 
 ```c
 struct stivale2_module {
-    uint64_t begin;         // Address where the module is loaded
-    uint64_t end;           // End address of the module
+    uint64_t begin;         // Physical address where the module is loaded
+    uint64_t end;           // End physical address of the module
     char string[128];       // 0-terminated string passed to the module
 } __attribute__((packed));
 ```
@@ -399,7 +411,7 @@ This tag reports to the kernel the location of the ACPI RSDP structure in memory
 struct stivale2_struct_tag_rsdp {
     uint64_t identifier;        // Identifier: 0x9e1786930a375e78
     uint64_t next;
-    uint64_t rsdp;              // Pointer to the ACPI RSDP structure
+    uint64_t rsdp;              // Physical pointer to the ACPI RSDP structure
 } __attribute__((packed));
 ```
 
