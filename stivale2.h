@@ -166,4 +166,11 @@ struct stivale2_struct_tag_pxe_server_info {
     uint32_t server_ip;
 } __attribute__((__packed__));
 
+#define STIVALE2_STRUCT_TAG_ELF_HEADER_ID 0x656c666865616472
+
+struct stivale2_struct_tag_elf_ehdr {
+    struct stivale2_tag tag;
+    uint64_t addr;
+} __attribute__((__packed__));
+
 #endif

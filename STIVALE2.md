@@ -532,3 +532,15 @@ struct stivale2_struct_tag_dtb {
     uint64_t size;              // The size of the dtb
 } __attribute__((packed));
 ```
+
+#### Elf header (ehdr) tag
+
+This tag reports the address of the elf ehdr loaded by the boot loader. section headers are correctly mapped to their virtual memory addresses
+
+```c
+struct stivale2_struct_elf_header {
+    uint64_t identifier;        // Identifier: 0x656c666865616472
+    uint64_t next;
+    uint64_t addr;              // The address of the elf ehdr
+} __attribute__((packed));
+```
