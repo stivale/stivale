@@ -532,3 +532,27 @@ struct stivale2_struct_tag_dtb {
     uint64_t size;              // The size of the dtb
 } __attribute__((packed));
 ```
+
+#### Kernel ELF header tag
+
+This tag contains a memory copy of the kernel's ELF header
+
+```c
+struct stivale2_struct_tag_elf_headers {
+    uint64_t identifier;        // Identifier: b6fc4d84465ec6ee
+    uint64_t next;
+    uint8_t header[];           // Kernel ELF header
+} __attribute__((packed));
+```
+
+#### Kernel ELF section header table
+
+This tag contains a memory copy of the kernel's ELF section header table. All sections present in the table have the sh_addr fields changed to the real memory address of the section specified
+
+```c
+struct stivale2_struct_tag_elf_section_table {
+    uint64_t identifier;        // Identifier: ae8ce59d0119aca5
+    uint64_t next;
+    uint8_t table[];            // Kernel section header table
+} __attribute__((packed));
+```
