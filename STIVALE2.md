@@ -538,7 +538,7 @@ struct stivale2_struct_tag_dtb {
 This tag contains a memory copy of the kernel's ELF header
 
 ```c
-struct stivale2_struct_tag_elf_headers {
+struct stivale2_struct_tag_elf_header {
     uint64_t identifier;        // Identifier: b6fc4d84465ec6ee
     uint64_t next;
     uint8_t header[];           // Kernel ELF header

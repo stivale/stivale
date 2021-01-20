@@ -168,14 +168,14 @@ struct stivale2_struct_tag_pxe_server_info {
 
 #define STIVALE2_STRUCT_TAG_ELF_HEADER_ID 0xb6fc4d84465ec6ee
 
-struct stivale_struct_tag_elf_headers {
+struct stivale2_struct_tag_elf_header {
     struct stivale2_tag tag;
     uint8_t header[];
 } __attribute__((__packed__));
 
 #define STIVALE2_STRUCT_TAG_ELF_SECTION_TABLE_ID 0xae8ce59d0119aca5
 
-struct stivale_struct_tag_elf_section_table {
+struct stivale2_struct_tag_elf_section_table {
     struct stivale2_tag tag;
     uint8_t table[];
 } __attribute__((__packed__));
