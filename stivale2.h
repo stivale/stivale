@@ -135,8 +135,7 @@ struct stivale2_struct_tag_epoch {
 
 #define STIVALE2_STRUCT_TAG_FIRMWARE_ID 0x359d837855e3858c
 
-#define STIVALE2_FIRMWARE_UEFI 0
-#define STIVALE2_FIRMWARE_BIOS 1
+#define STIVALE2_FIRMWARE_BIOS (1 << 0)
 
 struct stivale2_struct_tag_firmware {
     struct stivale2_tag tag;
