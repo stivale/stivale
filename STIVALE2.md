@@ -142,7 +142,7 @@ The kernel is entered at EL1.
 
 `VBAR_EL1` is in an undefined state. Kernel must load its own.
 
-`DAIF.{D,A,I,F}` are clear.
+`DAIF.{D,A,I,F}` are set/masked.
 
 `SCTLR_EL1.{M,C,I}` are set. Other bits are undefined.
 `MAIR` has at least the following entries, in some order:
