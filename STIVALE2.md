@@ -38,7 +38,7 @@ higher half stivale2 kernels are gonna be marked with a *.
 
 ## Kernel entry machine state
 
-### 64-bit kernel
+### x86_64
 
 `rip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale2 header is set to a non-0 value, in which case, it is set to
@@ -87,7 +87,7 @@ to the kernel.
 
 All other general purpose registers are set to 0.
 
-### 32-bit kernel
+### IA-32
 
 `eip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale2 header is set to a non-0 value, in which case, it is set to
@@ -117,6 +117,49 @@ before the entry point is called.
 
 All other general purpose registers are set to 0.
 
+### aarch64
+
+`IP` will be the entry point as defined in the ELF file, unless the `entry_point`
+field in the stivale2 header is set to a non-0 value, in which case, it is set to
+the value of `entry_point`.
+
+At entry, the bootloader will have setup paging mappings as such:
+
+```
+ Base Physical Address -                    Size                    ->  Virtual address
+  0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0x0000000000000000
+  0x0000000000000000   - 4 GiB plus any additional memory map entry -> VMAP_HIGH
+```
+Where `VMAP_HIGH` is specified in the mandatory `stivale2_struct_vmap` tag.
+
+If the kernel is dynamic and not statically linked, the bootloader will relocate it,
+potentially performing KASLR (as specified by the config).
+
+The kernel should NOT modify the bootloader page tables, and it should only use them
+to bootstrap its own virtual memory manager and its own page tables.
+
+The kernel is entered at EL1.
+
+`VBAR_EL1` is in an undefined state. Kernel must load its own.
+
+`DAIF.{D,A,I,F}` are set/masked.
+
+`SCTLR_EL1.{M,C,I}` are set. Other bits are undefined.
+`MAIR` has at least the following entries, in some order:
+  * `0b00001100`, used for mmio regions
+  * `0b11111111`, used for normal memory
+
+`SP` is set to the requested stack as per stivale2 header.
+The `LR` register has an invalid return address.
+
+`SPSel.SP` is 1.
+
+Neither floating point, SIMD nor timer accesses trap to a higher EL than 1.
+
+`X0` will contain the physical address of the stivale2 structure (described below).
+
+All other general purpose registers are undefined.
+
 ## Bootloader-reserved memory
 
 In order for stivale2 to function, it needs to reserve memory areas for either internal
@@ -135,9 +178,9 @@ before switching to its own address space, as unmarked memory areas in use by
 the bootloader may become unavailable.
 
 Once the OS is done needing the bootloader, memory map areas marked as "bootloader
-reclaimable" may be used as usable memory. These areas are guaranteed to be
-4096-byte aligned (both base and length), and they are guaranteed to not overlap
-other sections of the memory map.
+reclaimable" may be used as usable memory. These areas are guaranteed to be aligned
+to the smallest possible page size (4K on x86_64 and IA-32), for both base and length,
+and they are guaranteed to not overlap other sections of the memory map.
 
 ## stivale2 header (.stivale2hdr)
 
@@ -530,5 +573,17 @@ struct stivale2_struct_tag_dtb {
     uint64_t next;
     uint64_t addr;              // The address of the dtb
     uint64_t size;              // The size of the dtb
+} __attribute__((packed));
+```
+
+#### High memory mapping
+
+This tag describes the high physical memory location (`VMAP_HIGH`)
+
+```c
+struct stivale2_struct_vmap {
+    uint64_t identifier;        // Identifier: 0xb0ed257db18cb58f
+    uint64_t next;
+    uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
 } __attribute__((packed));
 ```
