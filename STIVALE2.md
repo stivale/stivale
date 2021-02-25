@@ -149,9 +149,8 @@ The kernel is entered at EL1.
   * `0b00001100`, used for mmio regions
   * `0b11111111`, used for normal memory
 
-`SP` is set to the requested stack as per stivale2 header. If the requested value is
-non-null, an invalid return address of 0 is pushed to the stack before jumping
-to the kernel.
+`SP` is set to the requested stack as per stivale2 header.
+The `LR` register has an invalid return address.
 
 `SPSel.SP` is 1.
 
