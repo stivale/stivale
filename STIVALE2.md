@@ -179,8 +179,8 @@ the bootloader may become unavailable.
 
 Once the OS is done needing the bootloader, memory map areas marked as "bootloader
 reclaimable" may be used as usable memory. These areas are guaranteed to be aligned
-to the smallest possible page size (both base and length), and they are guaranteed
-to not overlap other sections of the memory map.
+to the smallest possible page size (4K on x86_64 and IA-32), for both base and length,
+and they are guaranteed to not overlap other sections of the memory map.
 
 ## stivale2 header (.stivale2hdr)
 
