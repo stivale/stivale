@@ -51,6 +51,9 @@ At entry, the bootloader will have setup paging mappings as such:
   0x0000000000000000   -                 0x80000000                 -> 0xffffffff80000000
 ```
 
+All the mappings are supervisor, read, write, execute (-rwx). The elf sections
+of the kernel do not change this.
+
 If the kernel is dynamic and not statically linked, the bootloader will relocate it,
 potentially performing KASLR (as specified by the config).
 
