@@ -168,4 +168,26 @@ struct stivale2_struct_tag_pxe_server_info {
     uint32_t server_ip;
 } __attribute__((__packed__));
 
+#define STIVALE2_STRUCT_TAG_MMIO32_UART 0xb813f9b8dbc78797
+
+struct stivale2_struct_tag_mmio32_uart {
+    struct stivale2_tag tag;
+    uint64_t addr;
+} __attribute__((__packed__));
+
+#define STIVALE2_STRUCT_TAG_DTB 0xabb29bd49a2833fa
+
+struct stivale2_struct_tag_dtb {
+    struct stivale2_tag tag;
+    uint64_t addr;
+    uint64_t size;
+} __attribute__((__packed__));
+
+#define STIVALE2_STRUCT_TAG_VMAP 0xb0ed257db18cb58f
+
+struct stivale2_struct_vmap {
+    struct stivale2_tag tag;
+    uint64_t addr;
+} __attribute__((__packed__));
+
 #endif
