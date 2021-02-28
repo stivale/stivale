@@ -252,7 +252,8 @@ A module structure looks like this:
 struct stivale_module {
     uint64_t begin;         // Physical address where the module is loaded
     uint64_t end;           // End address of the module
-    char     string[128];   // String passed to the module (by config file)
+    char     string[128];   // 0-terminated ASCII string passed to the module
+                            // (as specified in the config file)
     uint64_t next;          // Pointer to the next module (if any), check module_count
                             // in the stivale_struct
 } __attribute__((packed));

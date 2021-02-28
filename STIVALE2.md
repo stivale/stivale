@@ -310,8 +310,8 @@ struct stivale2_header_tag_smp {
 The stivale2 structure returned by the bootloader looks like this:
 ```c
 struct stivale2_struct {
-    char bootloader_brand[64];    // Bootloader null-terminated brand string
-    char bootloader_version[64];  // Bootloader null-terminated version string
+    char bootloader_brand[64];    // Bootloader ASCII 0-terminated brand string
+    char bootloader_version[64];  // Bootloader ASCII 0-terminated version string
 
     uint64_t tags;          // Physical address of the first of the linked list of tags.
                             // see "stivale2 structure tags" section.
@@ -445,7 +445,8 @@ struct stivale2_struct_tag_modules {
 struct stivale2_module {
     uint64_t begin;         // Physical address where the module is loaded
     uint64_t end;           // End physical address of the module
-    char string[128];       // 0-terminated string passed to the module
+    char string[128];       // ASCII 0-terminated string passed to the module
+                            // as specified in the config file
 } __attribute__((packed));
 ```
 
