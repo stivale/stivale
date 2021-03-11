@@ -155,7 +155,7 @@ The kernel is entered at EL1.
 `SP` is set to the requested stack as per stivale2 header.
 The `LR` register has an invalid return address.
 
-`SPSel.SP` is 1.
+`SPSel.SP` is 0.
 
 Neither floating point, SIMD nor timer accesses trap to a higher EL than 1.
 
