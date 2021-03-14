@@ -20,14 +20,14 @@ struct stivale2_header {
 
 #define STIVALE2_HEADER_TAG_FRAMEBUFFER_ID 0x3ecc1bc43d0f7971
 
-#define STIVALE2_HEADER_TAG_FB_MTRR_ID 0x4c7bb07731282e00
-
 struct stivale2_header_tag_framebuffer {
     struct stivale2_tag tag;
     uint16_t framebuffer_width;
     uint16_t framebuffer_height;
     uint16_t framebuffer_bpp;
 } __attribute__((__packed__));
+
+#define STIVALE2_HEADER_TAG_FB_MTRR_ID 0x4c7bb07731282e00
 
 #define STIVALE2_HEADER_TAG_SMP_ID 0x1ab015085f3273df
 
@@ -101,6 +101,14 @@ struct stivale2_struct_tag_framebuffer {
     uint8_t  blue_mask_shift;
 } __attribute__((__packed__));
 
+#define STIVALE2_STRUCT_TAG_EDID_ID 0x968609d7af96b845
+
+struct stivale2_struct_tag_edid {
+    struct stivale2_tag tag;
+    uint64_t edid_size;
+    uint8_t  edid_information[];
+} __attribute__((__packed__));
+
 #define STIVALE2_STRUCT_TAG_FB_MTRR_ID 0x6bc1a78ebe871172
 
 #define STIVALE2_STRUCT_TAG_MODULES_ID 0x4b6fe466aade04ce
@@ -140,6 +148,13 @@ struct stivale2_struct_tag_epoch {
 struct stivale2_struct_tag_firmware {
     struct stivale2_tag tag;
     uint64_t flags;
+} __attribute__((__packed__));
+
+#define STIVALE2_STRUCT_TAG_EFI_SYSTEM_TABLE_ID 0x4bc5ec15845b558e
+
+struct stivale2_struct_tag_efi_system_table {
+    struct stivale2_tag tag;
+    uint64_t system_table;
 } __attribute__((__packed__));
 
 #define STIVALE2_STRUCT_TAG_SMP_ID 0x34d1d96339647025

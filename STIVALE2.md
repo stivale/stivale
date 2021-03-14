@@ -428,6 +428,20 @@ struct stivale2_struct_tag_framebuffer {
 } __attribute__((packed));
 ```
 
+#### EDID information structure tag
+
+This tag provides the kernel with EDID information as acquired by the firmware.
+
+```c
+struct stivale2_struct_tag_edid {
+    uint64_t identifier;        // Identifier: 0x968609d7af96b845
+    uint64_t next;
+    uint64_t edid_size;         // The amount of bytes that make up the
+                                // edid_information[] array
+    uint8_t  edid_information[];
+} __attribute__((packed));
+```
+
 #### Framebuffer MTRR write-combining structure tag
 
 This tag exists if MTRR write-combining for the framebuffer was requested and
@@ -492,6 +506,19 @@ struct stivale2_struct_tag_firmware {
     uint64_t identifier;        // Identifier: 0x359d837855e3858c
     uint64_t next;
     uint64_t flags;             // Bit 0: 0 = UEFI, 1 = BIOS
+} __attribute__((packed));
+```
+
+#### EFI system table structure tag
+
+This tag provides the kernel with a pointer to the EFI system table
+if available.
+
+```c
+struct stivale2_struct_tag_efi_system_table {
+    uint64_t identifier;        // Identifier: 0x4bc5ec15845b558e
+    uint64_t next;
+    uint64_t system_table;      // Physical address of the EFI system table
 } __attribute__((packed));
 ```
 
