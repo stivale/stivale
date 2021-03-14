@@ -35,7 +35,7 @@ loaders, but it WILL NOT work with Limine and it's explicitly discouraged.
 
 ## Kernel entry machine state
 
-### 64-bit kernel
+### x86_64
 
 `rip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale header is set to a non-0 value, in which case, it is set to
@@ -87,7 +87,7 @@ to the kernel.
 
 All other general purpose registers are set to 0.
 
-### 32-bit kernel
+### IA-32
 
 `eip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale header is set to a non-0 value, in which case, it is set to
@@ -116,6 +116,15 @@ The physical address of the stivale structure (described below) is pushed onto t
 before the entry point is called.
 
 All other general purpose registers are set to 0.
+
+## Low memory area
+
+For x86_64 and IA-32, stivale guarantees that an area of no less than 32 KiB is
+free and usable at physical memory address `0x70000`, regardless of what is
+specified in the memory map.
+
+This allows the kernel to perform tasks that require Real Mode accessible memory
+such as multicore startup.
 
 ## Bootloader-reserved memory
 

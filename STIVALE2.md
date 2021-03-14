@@ -163,6 +163,15 @@ Neither floating point, SIMD nor timer accesses trap to a higher EL than 1.
 
 All other general purpose registers are undefined.
 
+## Low memory area
+
+For x86_64 and IA-32, stivale2 guarantees that an area of no less than 32 KiB is
+free and usable at physical memory address `0x70000`, regardless of what is
+specified in the memory map.
+
+This allows the kernel to perform tasks that require Real Mode accessible memory
+such as multicore startup.
+
 ## Bootloader-reserved memory
 
 In order for stivale2 to function, it needs to reserve memory areas for either internal
