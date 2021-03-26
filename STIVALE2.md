@@ -627,3 +627,15 @@ struct stivale2_struct_vmap {
     uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
 } __attribute__((packed));
 ```
+
+### ELF section array
+
+This tag describes the ELF sections of the kernel
+
+```c
+struct stivale2_struct_elf {
+    uint64_t identifier;        // Identifier: 0xf850a78bc0530d8a
+    uint64_t next;
+    uint64_t sections[];        // Contains the addresses of every ELF section header
+} __attribute__((packed));
+```
