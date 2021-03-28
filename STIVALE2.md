@@ -535,6 +535,19 @@ struct stivale2_struct_tag_kernel_file {
 } __attribute__((packed));
 ```
 
+#### Kernel slide structure tag
+
+This tag returns the slide that the bootloader applied over the kernel's load
+address as a positive offset.
+
+```c
+struct stivale2_struct_tag_kernel_slide {
+    uint64_t identifier;        // Identifier: 0xee80847d01506c57
+    uint64_t next;
+    uint64_t kernel_slide;      // Kernel slide
+} __attribute__((packed));
+```
+
 #### SMP structure tag
 
 This tag reports to the kernel info about a multiprocessor environment.
