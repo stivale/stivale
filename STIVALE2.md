@@ -522,6 +522,19 @@ struct stivale2_struct_tag_efi_system_table {
 } __attribute__((packed));
 ```
 
+#### Kernel file structure tag
+
+This tag provides the kernel with a pointer to a copy the raw executable file
+of the kernel that the bootloader loaded.
+
+```c
+struct stivale2_struct_tag_kernel_file {
+    uint64_t identifier;        // Identifier: 0xe599d90c2975584a
+    uint64_t next;
+    uint64_t kernel_file;       // Physical address of the raw kernel file
+} __attribute__((packed));
+```
+
 #### SMP structure tag
 
 This tag reports to the kernel info about a multiprocessor environment.
