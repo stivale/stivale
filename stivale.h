@@ -32,6 +32,7 @@ struct stivale_module {
 #define STIVALE_MMAP_BAD_MEMORY             5
 #define STIVALE_MMAP_KERNEL_AND_MODULES     10
 #define STIVALE_MMAP_BOOTLOADER_RECLAIMABLE 0x1000
+#define STIVALE_MMAP_FRAMEBUFFER            0x1002
 
 struct stivale_mmap_entry {
     uint64_t base;

@@ -236,6 +236,7 @@ struct mmap_entry {
 5      - Bad memory
 10     - Kernel/Modules
 0x1000 - Bootloader Reclaimable
+0x1002 - Framebuffer
 ```
 
 All other values are undefined.

@@ -36,6 +36,13 @@ struct stivale2_header_tag_smp {
     uint64_t flags;
 } __attribute__((__packed__));
 
+#define STIVALE2_HEADER_TAG_TERMINAL_ID 0xa85d499b1823be72
+
+struct stivale2_header_tag_terminal {
+    struct stivale2_tag tag;
+    uint64_t flags;
+} __attribute__((__packed__));
+
 #define STIVALE2_HEADER_TAG_5LV_PAGING_ID 0x932f477032007e8f
 
 /* --- Struct --------------------------------------------------------------- */
@@ -67,6 +74,7 @@ struct stivale2_struct_tag_cmdline {
 #define STIVALE2_MMAP_BAD_MEMORY             5
 #define STIVALE2_MMAP_BOOTLOADER_RECLAIMABLE 0x1000
 #define STIVALE2_MMAP_KERNEL_AND_MODULES     0x1001
+#define STIVALE2_MMAP_FRAMEBUFFER            0x1002
 
 struct stivale2_mmap_entry {
     uint64_t base;
@@ -125,6 +133,14 @@ struct stivale2_struct_tag_modules {
     struct stivale2_tag tag;
     uint64_t module_count;
     struct stivale2_module modules[];
+} __attribute__((__packed__));
+
+#define STIVALE2_STRUCT_TAG_TERMINAL_ID 0xc2b3f4c3233b0974
+
+struct stivale2_struct_tag_terminal {
+    struct stivale2_tag tag;
+    uint64_t flags;
+    uint64_t term_write;
 } __attribute__((__packed__));
 
 #define STIVALE2_STRUCT_TAG_RSDP_ID 0x9e1786930a375e78

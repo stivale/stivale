@@ -292,6 +292,25 @@ Identifier: `0x4c7bb07731282e00`
 
 This tag does not have extra members.
 
+#### Terminal header tag
+
+If this tag is present the bootloader is instructed to set up a terminal for
+use by the early stages of the kernel boot process. See "Terminal struct tag"
+below.
+
+The framebuffer header tag must be specified when passing this header tag, and
+this tag inhibits the WC MTRR framebuffer feature, by forcing the MTRRs to an
+implementation specific state as needed by the bootloader terminal.
+
+```c
+struct stivale2_header_tag_smp {
+    uint64_t identifier;          // Identifier: 0xa85d499b1823be72
+    uint64_t next;
+    uint64_t flags;               // Flags:
+                                  // All bits are undefined and must be 0.
+} __attribute__((packed));
+```
+
 #### 5-level paging header tag
 
 The presence of this tag enables support for 5-level paging, if available.
@@ -387,7 +406,8 @@ enum stivale2_mmap_type : uint32_t {
     ACPI_NVS               = 4,
     BAD_MEMORY             = 5,
     BOOTLOADER_RECLAIMABLE = 0x1000,
-    KERNEL_AND_MODULES     = 0x1001
+    KERNEL_AND_MODULES     = 0x1001,
+    FRAMEBUFFER            = 0x1002
 };
 ```
 
@@ -450,6 +470,66 @@ successfully enabled.
 Identifier: `0x6bc1a78ebe871172`
 
 This tag does not have extra members.
+
+#### Terminal structure tag
+
+If a terminal was requested (see "Terminal header tag" above), and the feature
+is supported, this tag is returned to the kernel to provide it with the physical
+entry point of the `stivale2_term_write()` function.
+
+```c
+struct stivale2_struct_tag_terminal {
+    uint64_t identifier;        // Identifier: 0xc2b3f4c3233b0974
+    uint64_t flags;             // All bits presently undefined.
+    uint64_t term_write;        // Physical pointer to the entry point of the
+                                // stivale2_term_write() function.
+} __attribute__((packed));
+```
+
+The C prototype of this function is the following:
+
+```c
+void stivale2_term_write(const char *string, size_t length);
+```
+
+The calling convention matches the SysV C ABI for the specific architecture.
+
+##### x86_64
+
+Additionally, the kernel must ensure, when calling this routine, that:
+
+* Either the GDT provided by the bootloader is still properly loaded, or a custom
+GDT is loaded with at least the following descriptors in this specific order:
+
+  - Null descriptor
+  - 16-bit code descriptor. Base = `0`, limit = `0xffff`. Readable.
+  - 16-bit data descriptor. Base = `0`, limit = `0xffff`. Writable.
+  - 32-bit code descriptor. Base = `0`, limit = `0xffffffff`. Readable.
+  - 32-bit data descriptor. Base = `0`, limit = `0xffffffff`. Writable.
+  - 64-bit code descriptor. Base and limit irrelevant. Readable.
+  - 64-bit data descriptor. Base and limit irrelevant. Writable.
+
+* The currently loaded virtual address space is still the one provided at entry
+by the bootloader, or a custom virtual address space is loaded which maps at least
+the same regions as the bootloader provided one, with the same flags.
+
+* The routine is called *by its physical address.*
+
+* Bootloader-reclaimable memory entries are left untouched until after the kernel
+is done utilising bootloader-provided facilities (this terminal being one of them).
+
+##### IA-32
+
+This service is not provided to IA-32 kernels.
+
+##### Terminal characteristics
+
+The terminal is guaranteed able to print the 7-bit ASCII character set, that
+`'\n'` (`0x0a`) is the newline character that puts the cursor to the beginning of
+the next line (scrolling when necessary), and that `\b` (`0x08`) is the backspace
+character that moves the cursor over the previous character on screen.
+
+All other expansions on this basic set of features are implementation specific.
 
 #### Modules structure tag
 
