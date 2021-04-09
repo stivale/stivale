@@ -278,6 +278,9 @@ struct stivale2_header_tag_framebuffer {
 
 #### Framebuffer MTRR write-combining header tag
 
+*Note: This tag is deprecated and considered legacy. Use is discouraged and*
+*it may not be supported on newer bootloaders.*
+
 The presence of this tag tells the bootloader to, in case a framebuffer was
 requested, make that framebuffer's caching type write-combining using x86's
 MTRR model specific registers. This caching type helps speed up framebuffer writes
@@ -463,6 +466,9 @@ struct stivale2_struct_tag_edid {
 ```
 
 #### Framebuffer MTRR write-combining structure tag
+
+*Note: This tag is deprecated and considered legacy. Use is discouraged and*
+*it may not be supported on newer bootloaders.*
 
 This tag exists if MTRR write-combining for the framebuffer was requested and
 successfully enabled.
