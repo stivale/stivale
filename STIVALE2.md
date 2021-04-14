@@ -322,6 +322,16 @@ Identifier: `0x932f477032007e8f`
 
 This tag does not have extra members.
 
+#### Unmap NULL header tag
+
+The presence of this tag tells the bootloader to unmap the first page of the
+virtual address space before passing control to the kernel, for architectures
+that support paging.
+
+Identifier: `0x92919432b16fe7e7`
+
+This tag does not have extra members.
+
 #### SMP header tag
 
 The presence of this tag enables support for booting up application processors.
@@ -486,7 +496,12 @@ entry point of the `stivale2_term_write()` function.
 ```c
 struct stivale2_struct_tag_terminal {
     uint64_t identifier;        // Identifier: 0xc2b3f4c3233b0974
-    uint64_t flags;             // All bits presently undefined.
+    uint32_t flags;             // Bit 0: cols and rows provided.
+                                // All other bits undefined and set to 0.
+    uint16_t cols;              // Columns of characters of the terminal.
+                                // Valid only if bit 0 of flags is set.
+    uint16_t rows;              // Rows of characters of the terminal.
+                                // Valid only if bit 0 of flags is set.
     uint64_t term_write;        // Physical pointer to the entry point of the
                                 // stivale2_term_write() function.
 } __attribute__((packed));
@@ -499,6 +514,8 @@ void stivale2_term_write(const char *string, size_t length);
 ```
 
 The calling convention matches the SysV C ABI for the specific architecture.
+
+The function is not thread-safe, nor reentrant.
 
 ##### x86_64
 
@@ -530,9 +547,9 @@ This service is not provided to IA-32 kernels.
 
 ##### Terminal characteristics
 
-The terminal is guaranteed able to print the 7-bit ASCII character set, that
-`'\n'` (`0x0a`) is the newline character that puts the cursor to the beginning of
-the next line (scrolling when necessary), and that `\b` (`0x08`) is the backspace
+It is guaranteed that the terminal be able to print the 7-bit ASCII character set,
+that `'\n'` (`0x0a`) is the newline character that puts the cursor to the beginning of
+the next line (scrolling when necessary), and that `'\b'` (`0x08`) is the backspace
 character that moves the cursor over the previous character on screen.
 
 All other expansions on this basic set of features are implementation specific.
