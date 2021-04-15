@@ -21,17 +21,13 @@ and the bootloader will take care of everything else, no AT linker script direct
 E.g.: having `. = 0xffffffff80000000 + 2M;` will load the kernel at physical address
 2MiB, and at virtual address `0xffffffff80200000`.
 
-For relocatable kernels, the bootloader may change the load addresses of the sections,
-especially if KASLR is enabled in the bootloader's configuration.
+For relocatable kernels, the bootloader may change the load addresses of the sections
+by adding a slide, if the specified location of a segment is not available for use.
+
+If KASLR is enabled, a random slide will be added unconditionally.
 
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
-
-In order to maintain compatibility with Limine and other stivale2-compliant
-bootloaders it is strongly advised never to load the kernel or any of its
-sections below the 1 MiB physical memory mark. This may work with some stivale2
-loaders, but it WILL NOT work with Limine and it's explicitly discouraged.
-2MiB or higher is the recommended physical base address for maximum compatibility.
 
 Pointers that can be virtual addresses instead of physical addresses for 64-bit
 higher half stivale2 kernels are gonna be marked with a *.
@@ -57,17 +53,28 @@ At entry, the bootloader will have setup paging mappings as such:
 All the mappings are supervisor, read, write, execute (-rwx). The elf sections
 of the kernel do not change this.
 
+If the "unmap NULL" header tag is specified, then page 0, or the first 4KiB of the
+virtual address space, are going to be unmapped.
+
+The bootloader page tables are in bootloader-reclaimable memory, their specific layout
+is undefined as long as they provide the above memory mappings.
+
 If the kernel is dynamic and not statically linked, the bootloader will relocate it,
 potentially performing KASLR (as specified by the config).
-
-The kernel should NOT modify the bootloader page tables, and it should only use them
-to bootstrap its own virtual memory manager and its own page tables.
 
 At entry all segment registers are loaded as 64 bit code/data segments, limits and
 bases are ignored since this is Long Mode.
 
-DO NOT reload segment registers or rely on the provided GDT. The kernel MUST load
-its own GDT as soon as possible and not rely on the bootloader's.
+The GDT register is loaded to point to a GDT, in bootloader-reserved memory,
+with at least the following entries, starting at 0:
+
+  - Null descriptor
+  - 16-bit code descriptor. Base = `0`, limit = `0xffff`. Readable.
+  - 16-bit data descriptor. Base = `0`, limit = `0xffff`. Writable.
+  - 32-bit code descriptor. Base = `0`, limit = `0xffffffff`. Readable.
+  - 32-bit data descriptor. Base = `0`, limit = `0xffffffff`. Writable.
+  - 64-bit code descriptor. Base and limit irrelevant. Readable.
+  - 64-bit data descriptor. Base and limit irrelevant. Writable.
 
 The IDT is in an undefined state. Kernel must load its own.
 
@@ -99,8 +106,16 @@ the value of `entry_point`.
 At entry all segment registers are loaded as 32 bit code/data segments.
 All segment bases are `0x00000000` and all limits are `0xffffffff`.
 
-DO NOT reload segment registers or rely on the provided GDT. The kernel MUST load
-its own GDT as soon as possible and not rely on the bootloader's.
+The GDT register is loaded to point to a GDT, in bootloader-reserved memory,
+with at least the following entries, starting at 0:
+
+  - Null descriptor
+  - 16-bit code descriptor. Base = `0`, limit = `0xffff`. Readable.
+  - 16-bit data descriptor. Base = `0`, limit = `0xffff`. Writable.
+  - 32-bit code descriptor. Base = `0`, limit = `0xffffffff`. Readable.
+  - 32-bit data descriptor. Base = `0`, limit = `0xffffffff`. Writable.
+  - 64-bit code descriptor. Base and limit irrelevant. Readable.
+  - 64-bit data descriptor. Base and limit irrelevant. Writable.
 
 The IDT is in an undefined state. Kernel must load its own.
 
@@ -181,13 +196,8 @@ structures).
 stivale2 ensures that none of these areas are found in any of the sections
 marked as "usable" or "kernel/modules" in the memory map.
 
-The location of these areas may vary and it is implementation specific;
-these areas may be in any non-usable memory map section (except kernel/modules),
-or in unmarked memory.
-
-The OS must make sure to be done consuming bootloader information and services
-before switching to its own address space, as unmarked memory areas in use by
-the bootloader may become unavailable.
+The location of these areas may vary and it is implementation specific, but they
+are guaranteed to be in "bootloader reclaimable" entries.
 
 Once the OS is done needing the bootloader, memory map areas marked as "bootloader
 reclaimable" may be used as usable memory. These areas are guaranteed to be aligned
