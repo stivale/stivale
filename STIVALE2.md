@@ -316,7 +316,7 @@ this tag inhibits the WC MTRR framebuffer feature, by forcing the MTRRs to an
 implementation specific state as needed by the bootloader terminal.
 
 ```c
-struct stivale2_header_tag_smp {
+struct stivale2_header_tag_terminal {
     uint64_t identifier;          // Identifier: 0xa85d499b1823be72
     uint64_t next;
     uint64_t flags;               // Flags:
