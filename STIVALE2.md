@@ -598,6 +598,20 @@ struct stivale2_struct_tag_rsdp {
 } __attribute__((packed));
 ```
 
+#### SMBIOS structure tag
+
+This tag reports to the kernel the location of the SMBIOS entry points in memory.
+
+```c
+struct stivale2_struct_tag_smbios {
+    uint64_t identifier;        // Identifier: 0x274bd246c62bf7d1
+    uint64_t next;
+    uint64_t flags;             // Flags for future use. Currently unused and must be 0.
+    uint64_t smbios_entry_32;   // 32-bit SMBIOS entry point. 0 if unavailable.
+    uint64_t smbios_entry_64;   // 64-bit SMBIOS entry point. 0 if unavailable.
+} __attribute__((packed));
+```
+
 #### Epoch structure tag
 
 This tag reports to the kernel the current UNIX epoch, as per RTC.

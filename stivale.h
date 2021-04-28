@@ -65,6 +65,9 @@ struct stivale_struct {
     uint8_t  fb_green_mask_shift;
     uint8_t  fb_blue_mask_size;
     uint8_t  fb_blue_mask_shift;
+    uint8_t  reserved;
+    uint64_t smbios_entry_32;
+    uint64_t smbios_entry_64;
 } __attribute__((__packed__));
 
 #endif

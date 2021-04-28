@@ -191,6 +191,15 @@ struct stivale2_struct_tag_kernel_slide {
     uint64_t kernel_slide;
 } __attribute__((packed));
 
+#define STIVALE2_STRUCT_TAG_SMBIOS_ID 0x274bd246c62bf7d1
+
+struct stivale2_struct_tag_smbios {
+    struct stivale2_tag tag;
+    uint64_t flags;
+    uint64_t smbios_entry_32;
+    uint64_t smbios_entry_64;
+} __attribute__((packed));
+
 #define STIVALE2_STRUCT_TAG_SMP_ID 0x34d1d96339647025
 
 struct stivale2_smp_info {
