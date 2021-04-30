@@ -551,6 +551,13 @@ the same regions as the bootloader provided one, with the same flags.
 * Bootloader-reclaimable memory entries are left untouched until after the kernel
 is done utilising bootloader-provided facilities (this terminal being one of them).
 
+Notes regarding segment registers:
+
+The values of the FS and GS segments are guaranteed preserved across the call.
+All other segment registers may have their "hidden" portion overwritten, but
+stivale2 guarantees that the "visible" portion is going to be restored to the one
+used at the time of call before returning.
+
 ##### IA-32
 
 This service is not provided to IA-32 kernels.
