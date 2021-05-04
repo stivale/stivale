@@ -87,7 +87,7 @@ PIC/APIC IRQs are all masked.
 non-null, an invalid return address of 0 is pushed to the stack before jumping
 to the kernel.
 
-`rdi` will contain the physical address of the stivale structure (described below).
+`rdi` will contain the address of the stivale structure (described below).
 
 All other general purpose registers are set to 0.
 
@@ -124,7 +124,7 @@ PIC/APIC IRQs are all masked.
 `esp` is set to the requested stack as per stivale header. An invalid return address
 of 0 is pushed to the stack before jumping to the kernel.
 
-The physical address of the stivale structure (described below) is pushed onto this stack
+The address of the stivale structure (described below) is pushed onto this stack
 before the entry point is called.
 
 All other general purpose registers are set to 0.
@@ -179,6 +179,11 @@ struct stivale_header {
                       //        this flag is now reserved as KASLR is enabled in the
                       //        bootloader configuration instead. Presently
                       //        reserved and unused.
+                      // bit 3  If set to 1, all pointers, except otherwise noted,
+                      //        are to be offset to the higher half. That is,
+                      //        their value will be their physical address plus
+                      //        0xffff800000000000 with 4-level paging or
+                      //        0xff00000000000000 with 5-level paging on x86_64.
                       // All other bits are undefined and must be 0.
 
     uint16_t framebuffer_width;   // These 3 values are parsed if a graphics mode
@@ -195,24 +200,25 @@ struct stivale_header {
 The stivale structure returned by the bootloader looks like this:
 ```c
 struct stivale_struct {
-    uint64_t cmdline;               // Physical address of a null-terminated cmdline
-    uint64_t memory_map_addr;       // Physical address of the memory map (entries described below)
+    uint64_t cmdline;               // Address of a null-terminated cmdline
+    uint64_t memory_map_addr;       // Address of the memory map (entries described below)
     uint64_t memory_map_entries;    // Count of memory map entries
-    uint64_t framebuffer_addr;      // Physical address of the framebuffer and related info
-    uint16_t framebuffer_pitch;     // Pitch in bytes
-    uint16_t framebuffer_width;     // Width and height in pixels
+    uint64_t framebuffer_addr;      // Address of the graphical framebuffer if available.
+                                    // Else, 0
+    uint16_t framebuffer_pitch;     // Pitch of the framebuffer in bytes
+    uint16_t framebuffer_width;     // Width and height of the framebuffer in pixels
     uint16_t framebuffer_height;
     uint16_t framebuffer_bpp;       // Bits per pixel
-    uint64_t rsdp;                  // Physical address the ACPI RSDP structure
+    uint64_t rsdp;                  // Address the ACPI RSDP structure
     uint64_t module_count;          // Count of modules that stivale loaded according to config
-    uint64_t modules;               // Physical address of the first entry in the linked list of modules (described below)
+    uint64_t modules;               // Address of the first entry in the linked list of modules (described below)
     uint64_t epoch;                 // UNIX epoch at boot, read from system RTC
     uint64_t flags;                 // Flags
                                     // bit 0: 1 if booted with BIOS, 0 if booted with UEFI
                                     // bit 1: 1 if extended colour information passed, 0 if not
                                     // bit 2: SMBIOS entry points passed.
                                     // All other bits are undefined and set to 0.
-    // Extended colour information follows, only access if bit 1 of flags is set.
+    // Extended colour information follows. Only access if bit 1 of flags is set.
     uint8_t  fb_memory_model;       // Memory model: 1=RGB, all other values undefined
     uint8_t  fb_red_mask_size;      // RGB mask sizes and left shifts
     uint8_t  fb_red_mask_shift;
@@ -221,7 +227,7 @@ struct stivale_struct {
     uint8_t  fb_blue_mask_size;
     uint8_t  fb_blue_mask_shift;
     uint8_t  reserved;
-    // SMBIOS entry points follow, only access if bit 2 of flags is set.
+    // Addresses of the SMBIOS entry points follow. Only access if bit 2 of flags is set.
     uint64_t smbios_entry_32;       // 0 if entry point unavailable
     uint64_t smbios_entry_64;       // 0 if entry point unavailable
 } __attribute__((packed));
@@ -263,7 +269,7 @@ Usable and bootloader reclaimable entries are guaranteed to be 4096 byte aligned
 Usable and bootloader reclaimable entries are guaranteed not to overlap with any other entry.
 
 To the contrary, all non-usable entries (including kernel/modules) are not guaranteed any alignment, nor
-is it guaranteed that they do not overlap other entries (except usable and bootloader reclaimable entries).
+is it guaranteed that they do not overlap other entries.
 
 ## Modules
 
@@ -272,9 +278,9 @@ structures.
 A module structure looks like this:
 ```c
 struct stivale_module {
-    uint64_t begin;         // Physical address where the module is loaded
+    uint64_t begin;         // Address where the module is loaded
     uint64_t end;           // End address of the module
-    char     string[128];   // 0-terminated ASCII string passed to the module
+    char     string[128];   // 0-terminated ASCII string passed alongside the module
                             // (as specified in the config file)
     uint64_t next;          // Pointer to the next module (if any), check module_count
                             // in the stivale_struct
