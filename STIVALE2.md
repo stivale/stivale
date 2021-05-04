@@ -29,9 +29,6 @@ If KASLR is enabled, a random slide will be added unconditionally.
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
 
-Pointers that can be virtual addresses instead of physical addresses for 64-bit
-higher half stivale2 kernels are gonna be marked with a *.
-
 ## Kernel entry machine state
 
 ### x86_64
@@ -93,7 +90,7 @@ PIC/APIC IRQs are all masked.
 non-null, an invalid return address of 0 is pushed to the stack before jumping
 to the kernel.
 
-`rdi` will contain the physical address of the stivale2 structure (described below).
+`rdi` will contain the address of the stivale2 structure (described below).
 
 All other general purpose registers are set to 0.
 
@@ -130,7 +127,7 @@ PIC/APIC IRQs are all masked.
 `esp` is set to the requested stack as per stivale2 header. An invalid return address
 of 0 is pushed to the stack before jumping to the kernel.
 
-The physical address of the stivale2 structure (described below) is pushed onto this stack
+The address of the stivale2 structure (described below) is pushed onto this stack
 before the entry point is called.
 
 All other general purpose registers are set to 0.
@@ -228,10 +225,22 @@ struct stivale2_header {
                             //        KASLR, this flag is now reserved as KASLR
                             //        is enabled in the bootloader configuration
                             //        instead. Presently reserved and unused.
+                            // Bit 1: If set to 1, all pointers, except otherwise noted,
+                            //        are to be offset to the higher half. That is,
+                            //        their value will be their physical address plus
+                            //        0xffff800000000000 with 4-level paging or
+                            //        0xff00000000000000 with 5-level paging on x86_64.
+                            //        Success for this feature can be tested by checking
+                            //        whether the stivale2 struct pointer argument passed
+                            //        to the entry point function is in the higher
+                            //        half or not.
                             // All other bits are undefined and must be 0.
 
-    uint64_t tags;          // Pointer* to the first of the linked list of tags.
-                            // see "stivale2 header tags" section.
+    uint64_t tags;          // Pointer to the first tag of the linked list of
+                            // header tags.
+                            // See "stivale2 header tags" section.
+                            // The pointer can be either physical or, for higher
+                            // half kernels, the virtual in-kernel address.
                             // NULL = no tags.
 } __attribute__((packed));
 ```
@@ -248,7 +257,7 @@ The bootloader is free to ignore kernel tags that it does not recognise.
 The kernel should make sure that the bootloader has properly interpreted the
 provided tags, either by checking returned tags or by other means.
 
-Each tag shall contain these 2 fields:
+Each tag shall begine with these 2 members:
 ```c
 struct stivale2_hdr_tag {
     uint64_t identifier;
@@ -260,8 +269,10 @@ struct stivale2_hdr_tag {
 The `identifier` field identifies what feature the tag is requesting from the
 bootloader.
 
-The `next` field points* to another tag in the linked list. A NULL value determines
-the end of the linked list.
+The `next` field points to another tag in the linked list. A NULL value determines
+the end of the linked list. Just like the `tags` pointer in the stivale2 header,
+this value can either be a physical address or, for higher half kernels, the virtual
+in-kernel address.
 
 Tag structures can have more than just these 2 members, but these 2 members MUST
 appear at the beginning of any given tag.
@@ -308,12 +319,10 @@ This tag does not have extra members.
 #### Terminal header tag
 
 If this tag is present the bootloader is instructed to set up a terminal for
-use by the early stages of the kernel boot process. See "Terminal struct tag"
-below.
+use by the kernel at runtime. See "Terminal struct tag" below.
 
 The framebuffer header tag must be specified when passing this header tag, and
-this tag inhibits the WC MTRR framebuffer feature, by forcing the MTRRs to an
-implementation specific state as needed by the bootloader terminal.
+this tag may inhibit the WC MTRR framebuffer feature.
 
 ```c
 struct stivale2_header_tag_terminal {
@@ -361,10 +370,10 @@ struct stivale2_header_tag_smp {
 The stivale2 structure returned by the bootloader looks like this:
 ```c
 struct stivale2_struct {
-    char bootloader_brand[64];    // Bootloader ASCII 0-terminated brand string
-    char bootloader_version[64];  // Bootloader ASCII 0-terminated version string
+    char bootloader_brand[64];    // 0-terminated ASCII bootloader brand string
+    char bootloader_version[64];  // 0-terminated ASCII bootloader version string
 
-    uint64_t tags;          // Physical address of the first of the linked list of tags.
+    uint64_t tags;          // Address of the first of the linked list of tags.
                             // see "stivale2 structure tags" section.
                             // NULL = no tags.
 } __attribute__((packed));
@@ -373,8 +382,7 @@ struct stivale2_struct {
 ### stivale2 structure tags
 
 These tags work *very* similarly to the header tags, with the main difference being
-that these tags are returned to the kernel by the bootloader, and that `next` pointers
-are physical addresses, instead.
+that these tags are returned to the kernel by the bootloader.
 
 See "stivale2 header tags".
 
@@ -391,7 +399,7 @@ the bootloader.
 struct stivale2_struct_tag_cmdline {
     uint64_t identifier;          // Identifier: 0xe5e76a1b4597a781
     uint64_t next;
-    uint64_t cmdline;             // Physical pointer to a null-terminated cmdline
+    uint64_t cmdline;             // Pointer to a null-terminated cmdline
 } __attribute__((packed));
 ```
 
@@ -446,7 +454,7 @@ Usable and bootloader reclaimable entries are guaranteed to be 4096 byte aligned
 Usable and bootloader reclaimable entries are guaranteed not to overlap with any other entry.
 
 To the contrary, all non-usable entries (including kernel/modules) are not guaranteed any alignment, nor
-is it guaranteed that they do not overlap other entries (except usable and bootloader reclaimable entries).
+is it guaranteed that they do not overlap other entries.
 
 #### Framebuffer structure tag
 
@@ -456,7 +464,7 @@ This tag reports to the kernel the currently set up framebuffer details, if any.
 struct stivale2_struct_tag_framebuffer {
     uint64_t identifier;          // Identifier: 0x506461d2950408fa
     uint64_t next;
-    uint64_t framebuffer_addr;    // Physical address of the framebuffer
+    uint64_t framebuffer_addr;    // Address of the framebuffer
     uint16_t framebuffer_width;   // Width and height in pixels
     uint16_t framebuffer_height;
     uint16_t framebuffer_pitch;   // Pitch in bytes
@@ -586,8 +594,8 @@ struct stivale2_struct_tag_modules {
 
 ```c
 struct stivale2_module {
-    uint64_t begin;         // Physical address where the module is loaded
-    uint64_t end;           // End physical address of the module
+    uint64_t begin;         // Address where the module is loaded
+    uint64_t end;           // End address of the module
     char string[128];       // ASCII 0-terminated string passed to the module
                             // as specified in the config file
 } __attribute__((packed));
@@ -601,7 +609,7 @@ This tag reports to the kernel the location of the ACPI RSDP structure in memory
 struct stivale2_struct_tag_rsdp {
     uint64_t identifier;        // Identifier: 0x9e1786930a375e78
     uint64_t next;
-    uint64_t rsdp;              // Physical pointer to the ACPI RSDP structure
+    uint64_t rsdp;              // Pointer to the ACPI RSDP structure
 } __attribute__((packed));
 ```
 
@@ -614,8 +622,8 @@ struct stivale2_struct_tag_smbios {
     uint64_t identifier;        // Identifier: 0x274bd246c62bf7d1
     uint64_t next;
     uint64_t flags;             // Flags for future use. Currently unused and must be 0.
-    uint64_t smbios_entry_32;   // 32-bit SMBIOS entry point. 0 if unavailable.
-    uint64_t smbios_entry_64;   // 64-bit SMBIOS entry point. 0 if unavailable.
+    uint64_t smbios_entry_32;   // 32-bit SMBIOS entry point address. 0 if unavailable.
+    uint64_t smbios_entry_64;   // 64-bit SMBIOS entry point address. 0 if unavailable.
 } __attribute__((packed));
 ```
 
@@ -652,7 +660,7 @@ if available.
 struct stivale2_struct_tag_efi_system_table {
     uint64_t identifier;        // Identifier: 0x4bc5ec15845b558e
     uint64_t next;
-    uint64_t system_table;      // Physical address of the EFI system table
+    uint64_t system_table;      // Address of the EFI system table
 } __attribute__((packed));
 ```
 
@@ -665,7 +673,7 @@ of the kernel that the bootloader loaded.
 struct stivale2_struct_tag_kernel_file {
     uint64_t identifier;        // Identifier: 0xe599d90c2975584a
     uint64_t next;
-    uint64_t kernel_file;       // Physical address of the raw kernel file
+    uint64_t kernel_file;       // Address of the raw kernel file
 } __attribute__((packed));
 ```
 
@@ -711,8 +719,8 @@ struct stivale2_smp_info {
                                  // This MUST point to a valid stack of at least
                                  // 256 bytes in size, and 16-byte aligned.
                                  // target_stack is an unused field for the
-                                 // struct describing the BSP (lapic_id == 0)
-    uint64_t goto_address;       // This address is polled by the started APs
+                                 // struct describing the BSP.
+    uint64_t goto_address;       // This field is polled by the started APs
                                  // until the kernel on another CPU performs an
                                  // atomic write to this field.
                                  // When that happens, bootloader code will
@@ -725,7 +733,7 @@ struct stivale2_smp_info {
                                  // address is pushed onto the stack) and execution
                                  // is handed off.
                                  // The CPU state will be the same as described
-                                 // in kernel entry machine state, with the exception
+                                 // in "kernel entry machine state", with the exception
                                  // of ESP/RSP and RDI/stack arg being set up as
                                  // above.
                                  // goto_address is an unused field for the
