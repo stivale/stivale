@@ -184,6 +184,10 @@ struct stivale_header {
                       //        their value will be their physical address plus
                       //        0xffff800000000000 with 4-level paging or
                       //        0xff00000000000000 with 5-level paging on x86_64.
+                      //        Success for this feature can be tested by checking
+                      //        whether the stivale struct pointer argument passed
+                      //        to the entry point function is in the higher
+                      //        half or not.
                       // All other bits are undefined and must be 0.
 
     uint16_t framebuffer_width;   // These 3 values are parsed if a graphics mode
