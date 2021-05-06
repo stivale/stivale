@@ -53,14 +53,14 @@ of the kernel do not change this.
 The bootloader page tables are in bootloader-reclaimable memory, their specific layout
 is undefined as long as they provide the above memory mappings.
 
-If the kernel is dynamic and not statically linked, the bootloader will relocate it,
-potentially performing KASLR (as specified by the config).
+If the kernel is a position independent executable, the bootloader is free to
+relocate it as it sees fit, potentially performing KASLR (as specified by the config).
 
-At entry all segment registers are loaded as 64 bit code/data segments, limits and
-bases are ignored since this is Long Mode.
+At entry all segment registers are loaded as 64 bit code/data segments. Limits and
+bases are ignored since this is 64-bit mode.
 
 The GDT register is loaded to point to a GDT, in bootloader-reserved memory,
-with at least the following entries, starting at 0:
+with at least the following entries, starting at offset 0:
 
   - Null descriptor
   - 16-bit code descriptor. Base = `0`, limit = `0xffff`. Readable.
@@ -79,7 +79,7 @@ LME is enabled (`EFER`).
 If stivale header flag bit 1 is set, then, if available, 5-level paging is enabled
 (LA57 bit in `cr4`).
 
-The A20 gate is enabled.
+The A20 gate is opened.
 
 PIC/APIC IRQs are all masked.
 
@@ -101,7 +101,7 @@ At entry all segment registers are loaded as 32 bit code/data segments.
 All segment bases are `0x00000000` and all limits are `0xffffffff`.
 
 The GDT register is loaded to point to a GDT, in bootloader-reserved memory,
-with at least the following entries, starting at 0:
+with at least the following entries, starting at offset 0:
 
   - Null descriptor
   - 16-bit code descriptor. Base = `0`, limit = `0xffff`. Readable.
