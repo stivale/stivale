@@ -514,6 +514,7 @@ entry point of the `stivale2_term_write()` function.
 ```c
 struct stivale2_struct_tag_terminal {
     uint64_t identifier;        // Identifier: 0xc2b3f4c3233b0974
+    uint64_t next;
     uint32_t flags;             // Bit 0: cols and rows provided.
                                 // All other bits undefined and set to 0.
     uint16_t cols;              // Columns of characters of the terminal.
