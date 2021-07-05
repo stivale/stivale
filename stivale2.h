@@ -5,12 +5,12 @@
 
 // Anchor for non ELF kernels
 struct stivale2_anchor {
-    uint8_t anchor[16];
+    uint8_t anchor[15];
+    uint8_t bits;
     uint64_t phys_load_addr;
     uint64_t phys_bss_start;
     uint64_t phys_bss_end;
     uint64_t phys_stivale2hdr;
-    uint64_t bits;
 } __attribute__((__packed__));
 
 struct stivale2_tag {

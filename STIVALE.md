@@ -41,17 +41,18 @@ Anchored kernels are useful for kernels in a.out, flat binary, or otherwise
 non-ELF format that support direct loading.
 
 The stivale anchor can appear anywhere in the executable, but must be aligned on a
-16-byte boundary. It must be filled in as follows:
+16-byte boundary. Only the firstmost anchor that appears in the file is used.
+It must be filled in as follows:
 ```c
 struct stivale_anchor {
-    uint8_t anchor[16];         // Must be ASCII sequence "STIVALE1  ANCHOR"
+    uint8_t anchor[15];         // Must be ASCII sequence "STIVALE1 ANCHOR"
                                 // (excluding quotes)
+    uint64_t bits;              // What mode to be handed off control in: 32 or 64
     uint64_t phys_load_addr;    // Physical address to load the kernel executable to
     uint64_t phys_bss_start;    // Physical address of beginning of bss section
     uint64_t phys_bss_end;      // Physical address of end of bss section
     uint64_t phys_stivalehdr;   // Physical address of stivale header after kernel is
                                 // loaded in memory
-    uint64_t bits;              // What mode to be handed off control in: 32 or 64-bit
 } __attribute__((__packed__));
 ```
 
