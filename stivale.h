@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+// Anchor for non ELF kernels
+struct stivale_anchor {
+    uint8_t anchor[16];
+    uint64_t phys_load_addr;
+    uint64_t phys_bss_start;
+    uint64_t phys_bss_end;
+    uint64_t phys_stivalehdr;
+    uint64_t bits;
+} __attribute__((__packed__));
+
 /* --- Header --------------------------------------------------------------- */
 /*  Information passed from the kernel to the bootloader                      */
 

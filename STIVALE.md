@@ -6,14 +6,16 @@ x86_64 context (although 32-bit x86 is also supported).
 
 ## General information
 
-In order to have a stivale compliant kernel, one must have a kernel executable
-in the `elf64` or `elf32` format and have a `.stivalehdr` section (described below).
+In order to have a stivale compliant kernel, one must have a kernel executable,
+in the `elf64` or `elf32` format, with a `.stivalehdr` section (described below), or
+a non-ELF kernel providing a valid stivale anchor (see below).
 Other executable formats are not supported.
 
 stivale will recognise whether the ELF file is 32-bit or 64-bit and put the CPU into
-the appropriate mode before loading the kernel.
+the appropriate mode before loading the kernel. In the case of anchored kernels,
+the anchor provides information about which CPU mode to use.
 
-stivale natively supports (only for 64-bit kernels) and encourages higher half kernels.
+stivale natively supports (only for 64-bit ELF kernels) and encourages higher half kernels.
 The kernel can load itself at `0xffffffff80000000 + phys_base` (as defined in the linker script),
 and the bootloader will take care of everything else, no AT linker script directives needed.
 
@@ -29,13 +31,40 @@ If KASLR is enabled, a random slide will be added unconditionally.
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
 
+## Anchored kernels
+
+An anchored kernel is a non-ELF kernel, of unspecified executable or otherwise format,
+which provides an anchor for the bootloader to latch onto in order to gather
+information needed to perform kernel loading and handoff.
+
+Anchored kernels are useful for kernels in a.out, flat binary, or otherwise
+non-ELF format that support direct loading.
+
+The stivale anchor can appear anywhere in the executable, but must be aligned on a
+16-byte boundary. It must be filled in as follows:
+```c
+struct stivale_anchor {
+    uint8_t anchor[16];         // Must be ASCII sequence "STIVALE1  ANCHOR"
+                                // (excluding quotes)
+    uint64_t phys_load_addr;    // Physical address to load the kernel executable to
+    uint64_t phys_bss_start;    // Physical address of beginning of bss section
+    uint64_t phys_bss_end;      // Physical address of end of bss section
+    uint64_t phys_stivalehdr;   // Physical address of stivale header after kernel is
+                                // loaded in memory
+    uint64_t bits;              // What mode to be handed off control in: 32 or 64-bit
+} __attribute__((__packed__));
+```
+
+Anchored kernels are otherwise functionally equivalent to ELF counterparts.
+
 ## Kernel entry machine state
 
 ### x86_64
 
 `rip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale header is set to a non-0 value, in which case, it is set to
-the value of `entry_point`.
+the value of `entry_point`. For anchored kernels, the `entry_point` field of the
+header is always utilised.
 
 At entry, the bootloader will have setup paging mappings as such:
 
@@ -95,7 +124,8 @@ All other general purpose registers are set to 0.
 
 `eip` will be the entry point as defined in the ELF file, unless the `entry_point`
 field in the stivale header is set to a non-0 value, in which case, it is set to
-the value of `entry_point`.
+the value of `entry_point`. For anchored kernels, the `entry_point` field of the
+header is always utilised.
 
 At entry all segment registers are loaded as 32 bit code/data segments.
 All segment bases are `0x00000000` and all limits are `0xffffffff`.
@@ -157,8 +187,8 @@ and they are guaranteed to not overlap other sections of the memory map.
 
 ## stivale header (.stivalehdr)
 
-The kernel executable shall have a section `.stivalehdr` which will contain
-the header that the bootloader will parse.
+The kernel executable shall have a section `.stivalehdr` which will contain, or
+an anchor pointing to, the header that the bootloader will parse.
 
 Said header looks like this:
 ```c
