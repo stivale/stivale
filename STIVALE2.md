@@ -563,6 +563,9 @@ The C prototype of this function is the following:
 void stivale2_term_write(const char *string, size_t length);
 ```
 
+The maximum value for `length` is `1024`. To print longer strings, split them
+into several calls each of which smaller than or equal to 1024 bytes.
+
 The calling convention matches the SysV C ABI for the specific architecture.
 
 The function is not thread-safe, nor reentrant.
