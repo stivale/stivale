@@ -311,12 +311,47 @@ appear at the beginning of any given tag.
 Tags can have no extra members and just serve as "flags" to enable some behaviour
 that does not require extra parameters.
 
+#### Any video header tag
+
+This tag tells the stivale2-compliant bootloader that the kernel has no requirement
+for a framebuffer to be initialised.
+
+Depending on the `preference` field, the kernel can either tell the bootloader that
+it prefers a graphical linear framebuffer, but the lack of one (or CGA text mode) is also
+acceptable (value `0`); or that it prefers the lack of one (or CGA text mode), but
+if such is unavailable, a graphical linear framebuffer is also acceptable (value `1`).
+
+Omitting both the any video header tag and the framebuffer header tag means "force
+CGA text mode" (where available), and the bootloader will refuse to boot the kernel if
+it fails to fulfill that request.
+
+To detect which mode the bootloader ends up picking, either the framebuffer structure tag
+or the text mode structure tag (only one of them, see below) is returned to the
+kernel.
+
+```c
+struct stivale2_header_tag_any_video {
+    uint64_t identifier;          // Identifier: 0xc75c9fa92a44c4db
+    uint64_t next;
+    uint64_t preference;          // 0: prefer linear framebuffer
+                                  // 1: prefer no linear framebuffer
+                                  //    (CGA text mode if available)
+                                  // All other values undefined.
+} __attribute__((packed));
+```
+
 #### Framebuffer header tag
 
-This tag asks the stivale2-compliant bootloader to initialise a graphical framebuffer
-video mode.
-Omitting this tag will make the bootloader default to a CGA-compatible text mode,
-if supported.
+This tag can be used alongside the "any video" header tag to specify further
+framebuffer preferences.
+
+If used alone, without "any video" header tag, this tag mandates a graphical linear
+framebuffer and the bootloader will refuse to boot the kernel if it fails to
+initialise a framebuffer.
+
+The width, height, and bpp fields are just hints for the preferred resolution, but
+the bootloader reserves the right to override these values if no such video mode is
+available.
 
 ```c
 struct stivale2_header_tag_framebuffer {
@@ -507,6 +542,22 @@ struct stivale2_struct_tag_framebuffer {
     uint8_t  green_mask_shift;
     uint8_t  blue_mask_size;
     uint8_t  blue_mask_shift;
+} __attribute__((packed));
+```
+
+#### Text mode structure tag
+
+This tag reports to the kernel the currently set up CGA text mode details, if any.
+
+```c
+struct stivale2_struct_tag_textmode {
+    uint64_t identifier;          // Identifier: 0x38d74c23e0dca893
+    uint64_t next;
+    uint64_t address;             // Address of the text mode buffer
+    uint16_t unused;              // Unused, must be 0
+    uint16_t rows;                // How many rows
+    uint16_t cols;                // How many columns
+    uint16_t bytes_per_char;      // How many bytes make up a character
 } __attribute__((packed));
 ```
 
