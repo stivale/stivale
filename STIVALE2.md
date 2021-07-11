@@ -598,6 +598,8 @@ struct stivale2_struct_tag_terminal {
     uint64_t identifier;        // Identifier: 0xc2b3f4c3233b0974
     uint64_t next;
     uint32_t flags;             // Bit 0: cols and rows provided.
+                                // Bit 1: max_length provided. If this bit is 0,
+                                //        assume a max_length of 1024.
                                 // All other bits undefined and set to 0.
     uint16_t cols;              // Columns of characters of the terminal.
                                 // Valid only if bit 0 of flags is set.
@@ -605,6 +607,10 @@ struct stivale2_struct_tag_terminal {
                                 // Valid only if bit 0 of flags is set.
     uint64_t term_write;        // Physical pointer to the entry point of the
                                 // stivale2_term_write() function.
+    uint64_t max_length;        // If bit 1 of flags is set, this field exists
+                                // and it specifies what the maximum allowed
+                                // string length that can be passed to term_write() is.
+                                // If max_length is 0, then there is no limit.
 } __attribute__((packed));
 ```
 
@@ -613,9 +619,6 @@ The C prototype of this function is the following:
 ```c
 void stivale2_term_write(const char *string, size_t length);
 ```
-
-The maximum value for `length` is `1024`. To print longer strings, split them
-into several calls each of which smaller than or equal to 1024 bytes.
 
 The calling convention matches the SysV C ABI for the specific architecture.
 

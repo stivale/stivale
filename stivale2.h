@@ -139,6 +139,7 @@ struct stivale2_struct_tag_terminal {
     uint16_t cols;
     uint16_t rows;
     uint64_t term_write;
+    uint64_t max_length;
 } __attribute__((__packed__));
 
 #define STIVALE2_STRUCT_TAG_MODULES_ID 0x4b6fe466aade04ce
