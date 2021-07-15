@@ -299,6 +299,10 @@ Only 64-bit, higher half, ELF (non anchored) kernels can take advantage of this
 feature. Requesting this feature in 32-bit, lower half, or non-ELF kernels has
 undefined behaviour.
 
+For PMRs on the x86_64 platform, non-readable ranges are not possible, therefore
+they are ignored and forced readable in the MMU, but they are still reported back to
+the kernel in the struct tag.
+
 ### stivale2 header tags
 
 The stivale2 header uses a mechanism to avoid having protocol versioning, but
@@ -479,14 +483,41 @@ The kernel is responsible for parsing the tags and the identifiers, and interpre
 the tags that it supports, while handling in a graceful manner the tags it does not
 recognise.
 
-#### PMRs enabled structure tag
+#### PMRs structure tag
 
-This tag simply reports to the kernel that the bootloader recognised the PMR flag
+This tag reports to the kernel that the bootloader recognised the PMR flag
 in the main header and it has successfully mapped the kernel as per ELF segments.
 
-Identifier: `0x5df266a64047b6bd`
+It additionally reports back the array of ranges and their permissions as it was
+mapped by the bootloader. Ranges bases and sizes are at least 4KiB aligned, but
+their alignment will be no less than that of the ELF sections of the kernel.
 
-This tag does not have extra members.
+```c
+struct stivale2_struct_tag_pmrs {
+    uint64_t identifier;          // Identifier: 0x5df266a64047b6bd
+    uint64_t next;
+    uint64_t entries;             // Count of PMRs in following array
+    struct stivale2_pmr pmrs[];   // Array of PMR structs
+} __attribute__((packed));
+```
+
+The PMR struct looks as follows:
+
+```c
+struct stivale2_pmr {
+    uint64_t base;
+    uint64_t length;
+    uint64_t permissions;
+} __attribute__((packed));
+```
+
+The `permissions` field can have one of more of the following bits set, to determine
+the range's permissions:
+```c
+#define STIVALE2_PMR_EXECUTABLE ((uint64_t)1 << 0)
+#define STIVALE2_PMR_WRITABLE   ((uint64_t)1 << 1)
+#define STIVALE2_PMR_READABLE   ((uint64_t)1 << 2)
+```
 
 #### Command line structure tag
 
