@@ -511,8 +511,9 @@ struct stivale2_pmr {
 } __attribute__((packed));
 ```
 
-The `permissions` field can have one of more of the following bits set, to determine
+The `permissions` field can have one or more of the following bits set, to determine
 the range's permissions:
+
 ```c
 #define STIVALE2_PMR_EXECUTABLE ((uint64_t)1 << 0)
 #define STIVALE2_PMR_WRITABLE   ((uint64_t)1 << 1)
