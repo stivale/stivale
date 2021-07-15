@@ -79,6 +79,10 @@ struct stivale2_struct {
 
 #define STIVALE2_STRUCT_TAG_PMRS_ID 0x5df266a64047b6bd
 
+#define STIVALE2_PMR_EXECUTABLE ((uint64_t)1 << 0)
+#define STIVALE2_PMR_WRITABLE   ((uint64_t)1 << 1)
+#define STIVALE2_PMR_READABLE   ((uint64_t)1 << 2)
+
 struct stivale2_pmr {
     uint64_t base;
     uint64_t length;
