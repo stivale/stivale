@@ -77,6 +77,20 @@ struct stivale2_struct {
     uint64_t tags;
 } __attribute__((__packed__));
 
+#define STIVALE2_STRUCT_TAG_PMRS_ID 0x5df266a64047b6bd
+
+struct stivale2_pmr {
+    uint64_t base;
+    uint64_t length;
+    uint64_t permissions;
+} __attribute__((packed));
+
+struct stivale2_struct_tag_pmrs {
+    struct stivale2_tag tag;
+    uint64_t entries;
+    struct stivale2_pmr pmrs[];
+} __attribute__((packed));
+
 #define STIVALE2_STRUCT_TAG_CMDLINE_ID 0xe5e76a1b4597a781
 
 struct stivale2_struct_tag_cmdline {
