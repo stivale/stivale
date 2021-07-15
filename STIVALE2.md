@@ -29,7 +29,9 @@ by adding a slide, if the specified location of a segment is not available for u
 If KASLR is enabled, a random slide will be added unconditionally.
 
 If the kernel loads itself in the lower half, the bootloader will not perform the
-higher half relocation.
+higher half relocation and protected memory ranges (PMRs) will not be available.
+
+See the protected memory ranges section for more information on those.
 
 ## Anchored kernels
 
@@ -39,6 +41,8 @@ information needed to perform kernel loading and handoff.
 
 Anchored kernels are useful for kernels in a.out, flat binary, or otherwise
 non-ELF format that support direct loading.
+
+PMRs will not be available for anchored kernels.
 
 The stivale2 anchor can appear anywhere in the executable, but must be aligned on a
 16-byte boundary. Only the firstmost anchor that appears in the file is used.
@@ -74,14 +78,19 @@ At entry, the bootloader will have setup paging mappings as such:
   0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0x0000000000000000
   0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0xffff800000000000 (4-level paging only)
   0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0xff00000000000000 (5-level paging only)
-  0x0000000000000000   -                 0x80000000                 -> 0xffffffff80000000
+  0x0000000000000000   -                 0x80000000                 -> 0xffffffff80000000 (No PMRs only)
 ```
 
-All the mappings are supervisor, read, write, execute (-rwx). The elf sections
-of the kernel do not change this.
+All the mappings are supervisor, read, write, execute (-rwx).
+
+If PMRs are requested, the bottom-most of the above mappings (the one marked as
+`(No PMRs only)`) will not be created, and in its place, only mappings
+that describe the kernel's loaded ELF segments with appropriately set MMU permissions
+will be created. For relocatable kernels, slides will be appropriately taken into
+account. PMRs are not available to lower half kernels.
 
 If the "unmap NULL" header tag is specified, then page 0, or the first 4KiB of the
-virtual address space, are going to be unmapped.
+virtual address space, is going to be unmapped.
 
 The bootloader page tables are in bootloader-reclaimable memory, their specific layout
 is undefined as long as they provide the above memory mappings.
@@ -111,6 +120,7 @@ PG is enabled (`cr0`), PE is enabled (`cr0`), PAE is enabled (`cr4`),
 LME is enabled (`EFER`).
 If the stivale2 header tag for 5-level paging is present, then, if available,
 5-level paging is enabled (LA57 bit in `cr4`).
+If PMRs are requested, then, the NX bit will be enabled (NX bit in `EFER`).
 
 The A20 gate is opened.
 
@@ -265,6 +275,8 @@ struct stivale2_header {
                             //        whether the stivale2 struct pointer argument passed
                             //        to the entry point function is in the higher
                             //        half or not.
+                            // Bit 2: If set to 1, enables protected memory ranges.
+                            //        See the relevant section.
                             // All other bits are undefined and must be 0.
 
     uint64_t tags;          // Pointer to the first tag of the linked list of
@@ -275,6 +287,17 @@ struct stivale2_header {
                             // NULL = no tags.
 } __attribute__((packed));
 ```
+
+### Protected memory ranges
+
+Enabling protected memory ranges (bit 2 in the `flags` field of the main header
+struct) tells the stivale2-compliant bootloader that the kernel wants the top-most
+2 GiB of the address space to be mapped as per its ELF segments, rather than as a
+monolithic, all-permissions, block.
+
+Only 64-bit, higher half, ELF (non anchored) kernels can take advantage of this
+feature. Requesting this feature in 32-bit, lower half, or non-ELF kernels has
+undefined behaviour.
 
 ### stivale2 header tags
 
@@ -455,6 +478,15 @@ See "stivale2 header tags".
 The kernel is responsible for parsing the tags and the identifiers, and interpreting
 the tags that it supports, while handling in a graceful manner the tags it does not
 recognise.
+
+#### PMRs enabled structure tag
+
+This tag simply reports to the kernel that the bootloader recognised the PMR flag
+in the main header and it has successfully mapped the kernel as per ELF segments.
+
+Identifier: `0x5df266a64047b6bd`
+
+This tag does not have extra members.
 
 #### Command line structure tag
 
