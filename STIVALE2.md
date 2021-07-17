@@ -296,8 +296,10 @@ struct) tells the stivale2-compliant bootloader that the kernel wants the top-mo
 monolithic, all-permissions, block.
 
 Only 64-bit, higher half, ELF (non anchored) kernels can take advantage of this
-feature. Requesting this feature in 32-bit, lower half, or non-ELF kernels has
+feature. Requesting this feature for 32-bit, lower half, or non-ELF kernels has
 undefined behaviour.
+
+ELF segment load addresses must be at least 4KiB aligned, else load will fail.
 
 For PMRs on the x86_64 platform, non-readable ranges are not possible, therefore
 they are ignored and forced readable in the MMU, but they are still reported back to
@@ -489,8 +491,7 @@ This tag reports to the kernel that the bootloader recognised the PMR flag
 in the main header and it has successfully mapped the kernel as per ELF segments.
 
 It additionally reports back the array of ranges and their permissions as it was
-mapped by the bootloader. Ranges bases and sizes are at least 4KiB aligned, but
-their alignment will be no less than that of the ELF sections of the kernel.
+mapped by the bootloader. Ranges bases and sizes are at least 4KiB aligned.
 
 ```c
 struct stivale2_struct_tag_pmrs {
