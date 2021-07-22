@@ -47,7 +47,7 @@ It must be filled in as follows:
 struct stivale_anchor {
     uint8_t anchor[15];         // Must be ASCII sequence "STIVALE1 ANCHOR"
                                 // (excluding quotes)
-    uint64_t bits;              // What mode to be handed off control in: 32 or 64
+    uint8_t bits;               // What mode to be handed off control in: 32 or 64
     uint64_t phys_load_addr;    // Physical address to load the kernel executable to
     uint64_t phys_bss_start;    // Physical address of beginning of bss section
     uint64_t phys_bss_end;      // Physical address of end of bss section
