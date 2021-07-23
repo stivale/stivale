@@ -51,7 +51,10 @@ struct stivale2_header_tag_framebuffer {
 struct stivale2_header_tag_terminal {
     struct stivale2_tag tag;
     uint64_t flags;
+    uint64_t callback;
 } __attribute__((__packed__));
+
+#define STIVALE2_TERM_CB_DEC 10
 
 #define STIVALE2_HEADER_TAG_SMP_ID 0x1ab015085f3273df
 
