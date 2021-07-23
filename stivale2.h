@@ -55,6 +55,7 @@ struct stivale2_header_tag_terminal {
 } __attribute__((__packed__));
 
 #define STIVALE2_TERM_CB_DEC 10
+#define STIVALE2_TERM_CB_BELL 20
 
 #define STIVALE2_HEADER_TAG_SMP_ID 0x1ab015085f3273df
 
