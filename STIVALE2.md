@@ -299,8 +299,6 @@ Only 64-bit, higher half, ELF (non anchored) kernels can take advantage of this
 feature. Requesting this feature for 32-bit, lower half, or non-ELF kernels has
 undefined behaviour.
 
-ELF segment load addresses must be at least 4KiB aligned, else load will fail.
-
 For PMRs on the x86_64 platform, non-readable ranges are not possible, therefore
 they are ignored and forced readable in the MMU, but they are still reported back to
 the kernel in the struct tag.
