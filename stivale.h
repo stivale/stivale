@@ -11,7 +11,7 @@ struct stivale_anchor {
     uint64_t phys_bss_start;
     uint64_t phys_bss_end;
     uint64_t phys_stivalehdr;
-} __attribute__((__packed__));
+};
 
 /* --- Header --------------------------------------------------------------- */
 /*  Information passed from the kernel to the bootloader                      */
@@ -23,7 +23,7 @@ struct stivale_header {
     uint16_t framebuffer_height;
     uint16_t framebuffer_bpp;
     uint64_t entry_point;
-} __attribute__((__packed__));
+};
 
 /* --- Struct --------------------------------------------------------------- */
 /*  Information passed from the bootloader to the kernel                      */
@@ -33,7 +33,7 @@ struct stivale_module {
     uint64_t end;
     char string[128];
     uint64_t next;
-} __attribute__((__packed__));
+};
 
 #define STIVALE_MMAP_USABLE                 1
 #define STIVALE_MMAP_RESERVED               2
@@ -49,7 +49,7 @@ struct stivale_mmap_entry {
     uint64_t length;
     uint32_t type;
     uint32_t unused;
-} __attribute__((__packed__));
+};
 
 #define STIVALE_FBUF_MMODEL_RGB 1
 
@@ -78,6 +78,6 @@ struct stivale_struct {
     uint8_t  reserved;
     uint64_t smbios_entry_32;
     uint64_t smbios_entry_64;
-} __attribute__((__packed__));
+};
 
 #endif

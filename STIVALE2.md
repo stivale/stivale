@@ -57,7 +57,7 @@ struct stivale2_anchor {
     uint64_t phys_bss_end;      // Physical address of end of bss section
     uint64_t phys_stivale2hdr;  // Physical address of stivale2 header after kernel is
                                 // loaded in memory
-} __attribute__((__packed__));
+};
 ```
 
 Anchored kernels are otherwise functionally equivalent to ELF counterparts.
@@ -285,7 +285,7 @@ struct stivale2_header {
                             // The pointer can be either physical or, for higher
                             // half kernels, the virtual in-kernel address.
                             // NULL = no tags.
-} __attribute__((packed));
+};
 ```
 
 ### Protected memory ranges
@@ -320,8 +320,7 @@ Each tag shall begine with these 2 members:
 struct stivale2_hdr_tag {
     uint64_t identifier;
     uint64_t next;
-} __attribute__((packed));
-
+};
 ```
 
 The `identifier` field identifies what feature the tag is requesting from the
@@ -364,7 +363,7 @@ struct stivale2_header_tag_any_video {
                                   // 1: prefer no linear framebuffer
                                   //    (CGA text mode if available)
                                   // All other values undefined.
-} __attribute__((packed));
+};
 ```
 
 #### Framebuffer header tag
@@ -387,7 +386,8 @@ struct stivale2_header_tag_framebuffer {
     uint16_t framebuffer_width;   // If all values are set to 0
     uint16_t framebuffer_height;  // then the bootloader will pick the best possible
     uint16_t framebuffer_bpp;     // video mode automatically.
-} __attribute__((packed));
+    uint16_t unused;
+};
 ```
 
 #### Framebuffer MTRR write-combining header tag
@@ -423,7 +423,7 @@ struct stivale2_header_tag_terminal {
     uint64_t next;
     uint64_t flags;               // Flags:
                                   // All bits are undefined and must be 0.
-} __attribute__((packed));
+};
 ```
 
 #### 5-level paging header tag
@@ -455,7 +455,7 @@ struct stivale2_header_tag_smp {
     uint64_t flags;               // Flags:
                                   //   bit 0: 0 = use xAPIC, 1 = use x2APIC (if available)
                                   // All other bits are undefined and must be 0.
-} __attribute__((packed));
+};
 ```
 
 ## stivale2 structure
@@ -469,7 +469,7 @@ struct stivale2_struct {
     uint64_t tags;          // Address of the first of the linked list of tags.
                             // see "stivale2 structure tags" section.
                             // NULL = no tags.
-} __attribute__((packed));
+};
 ```
 
 ### stivale2 structure tags
@@ -497,7 +497,7 @@ struct stivale2_struct_tag_pmrs {
     uint64_t next;
     uint64_t entries;             // Count of PMRs in following array
     struct stivale2_pmr pmrs[];   // Array of PMR structs
-} __attribute__((packed));
+};
 ```
 
 The PMR struct looks as follows:
@@ -507,7 +507,7 @@ struct stivale2_pmr {
     uint64_t base;
     uint64_t length;
     uint64_t permissions;
-} __attribute__((packed));
+};
 ```
 
 The `permissions` field can have one or more of the following bits set, to determine
@@ -529,7 +529,7 @@ struct stivale2_struct_tag_cmdline {
     uint64_t identifier;          // Identifier: 0xe5e76a1b4597a781
     uint64_t next;
     uint64_t cmdline;             // Pointer to a null-terminated cmdline
-} __attribute__((packed));
+};
 ```
 
 #### Memory map structure tag
@@ -542,7 +542,7 @@ struct stivale2_struct_tag_memmap {
     uint64_t next;
     uint64_t entries;             // Count of memory map entries
     struct stivale2_mmap_entry memmap[];  // Array of memory map entries
-} __attribute__((packed));
+};
 ```
 
 ###### Memory map entry
@@ -553,7 +553,7 @@ struct stivale2_mmap_entry {
     uint64_t length;    // Length of the section
     uint32_t type;      // Type (described below)
     uint32_t unused;
-} __attribute__((packed));
+};
 ```
 
 `type` is an enumeration that can have the following values:
@@ -605,7 +605,8 @@ struct stivale2_struct_tag_framebuffer {
     uint8_t  green_mask_shift;
     uint8_t  blue_mask_size;
     uint8_t  blue_mask_shift;
-} __attribute__((packed));
+    uint8_t  unused;
+};
 ```
 
 #### Text mode structure tag
@@ -621,7 +622,7 @@ struct stivale2_struct_tag_textmode {
     uint16_t rows;                // How many rows
     uint16_t cols;                // How many columns
     uint16_t bytes_per_char;      // How many bytes make up a character
-} __attribute__((packed));
+};
 ```
 
 #### EDID information structure tag
@@ -635,7 +636,7 @@ struct stivale2_struct_tag_edid {
     uint64_t edid_size;         // The amount of bytes that make up the
                                 // edid_information[] array
     uint8_t  edid_information[];
-} __attribute__((packed));
+};
 ```
 
 #### Framebuffer MTRR write-combining structure tag
@@ -674,7 +675,7 @@ struct stivale2_struct_tag_terminal {
                                 // and it specifies what the maximum allowed
                                 // string length that can be passed to term_write() is.
                                 // If max_length is 0, then there is no limit.
-} __attribute__((packed));
+};
 ```
 
 The C prototype of this function is the following:
@@ -745,7 +746,7 @@ struct stivale2_struct_tag_modules {
     uint64_t next;
     uint64_t module_count;        // Count of loaded modules
     struct stivale2_module modules[]; // Array of module descriptors
-} __attribute__((packed));
+};
 ```
 
 ```c
@@ -754,7 +755,7 @@ struct stivale2_module {
     uint64_t end;           // End address of the module
     char string[128];       // ASCII 0-terminated string passed to the module
                             // as specified in the config file
-} __attribute__((packed));
+};
 ```
 
 #### RSDP structure tag
@@ -766,7 +767,7 @@ struct stivale2_struct_tag_rsdp {
     uint64_t identifier;        // Identifier: 0x9e1786930a375e78
     uint64_t next;
     uint64_t rsdp;              // Pointer to the ACPI RSDP structure
-} __attribute__((packed));
+};
 ```
 
 #### SMBIOS structure tag
@@ -780,7 +781,7 @@ struct stivale2_struct_tag_smbios {
     uint64_t flags;             // Flags for future use. Currently unused and must be 0.
     uint64_t smbios_entry_32;   // 32-bit SMBIOS entry point address. 0 if unavailable.
     uint64_t smbios_entry_64;   // 64-bit SMBIOS entry point address. 0 if unavailable.
-} __attribute__((packed));
+};
 ```
 
 #### Epoch structure tag
@@ -792,7 +793,7 @@ struct stivale2_struct_tag_epoch {
     uint64_t identifier;        // Identifier: 0x566a7bed888e1407
     uint64_t next;
     uint64_t epoch;             // UNIX epoch at boot, read from system RTC
-} __attribute__((packed));
+};
 ```
 
 #### Firmware structure tag
@@ -804,7 +805,7 @@ struct stivale2_struct_tag_firmware {
     uint64_t identifier;        // Identifier: 0x359d837855e3858c
     uint64_t next;
     uint64_t flags;             // Bit 0: 0 = UEFI, 1 = BIOS
-} __attribute__((packed));
+};
 ```
 
 #### EFI system table structure tag
@@ -817,7 +818,7 @@ struct stivale2_struct_tag_efi_system_table {
     uint64_t identifier;        // Identifier: 0x4bc5ec15845b558e
     uint64_t next;
     uint64_t system_table;      // Address of the EFI system table
-} __attribute__((packed));
+};
 ```
 
 #### Kernel file structure tag
@@ -830,7 +831,7 @@ struct stivale2_struct_tag_kernel_file {
     uint64_t identifier;        // Identifier: 0xe599d90c2975584a
     uint64_t next;
     uint64_t kernel_file;       // Address of the raw kernel file
-} __attribute__((packed));
+};
 ```
 
 #### Kernel slide structure tag
@@ -843,7 +844,7 @@ struct stivale2_struct_tag_kernel_slide {
     uint64_t identifier;        // Identifier: 0xee80847d01506c57
     uint64_t next;
     uint64_t kernel_slide;      // Kernel slide
-} __attribute__((packed));
+};
 ```
 
 #### SMP structure tag
@@ -863,7 +864,7 @@ struct stivale2_struct_tag_smp {
     uint64_t cpu_count;         // Total number of logical CPUs (including BSP)
     struct stivale2_smp_info smp_info[];  // Array of smp_info structs, one per
                                           // logical processor, including BSP.
-} __attribute__((packed));
+};
 ```
 
 ```c
@@ -901,7 +902,7 @@ struct stivale2_smp_info {
                                  // retrieve the data.
                                  // extra_argument is an unused field for the
                                  // struct describing the BSP.
-} __attribute__((packed));
+};
 ```
 
 #### PXE server info structure tag
@@ -912,7 +913,7 @@ This tag reports that the kernel has been booted via PXE, and reports the server
 struct stivale2_struct_tag_pxe_server_info {
     struct stivale2_tag tag;     // Identifier: 0x29d1e96239247032
     uint32_t server_ip;          // Server ip in network byte order
-} __attribute__((packed));
+};
 ```
 
 #### MMIO32 UART tag
@@ -924,7 +925,7 @@ struct stivale2_struct_tag_mmio32_uart {
     uint64_t identifier;        // Identifier: 0xb813f9b8dbc78797
     uint64_t next;
     uint64_t addr;              // The address of the UART port
-} __attribute__((packed));
+};
 ```
 
 #### Device tree blob tag
@@ -937,7 +938,7 @@ struct stivale2_struct_tag_dtb {
     uint64_t next;
     uint64_t addr;              // The address of the dtb
     uint64_t size;              // The size of the dtb
-} __attribute__((packed));
+};
 ```
 
 #### High memory mapping
@@ -949,5 +950,5 @@ struct stivale2_struct_vmap {
     uint64_t identifier;        // Identifier: 0xb0ed257db18cb58f
     uint64_t next;
     uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
-} __attribute__((packed));
+};
 ```

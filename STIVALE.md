@@ -53,7 +53,7 @@ struct stivale_anchor {
     uint64_t phys_bss_end;      // Physical address of end of bss section
     uint64_t phys_stivalehdr;   // Physical address of stivale header after kernel is
                                 // loaded in memory
-} __attribute__((__packed__));
+};
 ```
 
 Anchored kernels are otherwise functionally equivalent to ELF counterparts.
@@ -227,7 +227,7 @@ struct stivale_header {
                                   // video mode automatically (recommended).
     uint64_t entry_point;      // If not 0, this field will be jumped to at entry
                                // instead of the ELF entry point.
-} __attribute__((packed));
+};
 ```
 
 ## stivale structure
@@ -265,7 +265,7 @@ struct stivale_struct {
     // Addresses of the SMBIOS entry points follow. Only access if bit 2 of flags is set.
     uint64_t smbios_entry_32;       // 0 if entry point unavailable
     uint64_t smbios_entry_64;       // 0 if entry point unavailable
-} __attribute__((packed));
+};
 ```
 
 ## Memory map entry
@@ -276,7 +276,7 @@ struct mmap_entry {
     uint64_t length;    // Length of the section
     uint32_t type;      // Type (described below)
     uint32_t unused;
-} __attribute__((packed));
+};
 ```
 
 `type` is an enumeration that can have the following values:
@@ -319,5 +319,5 @@ struct stivale_module {
                             // (as specified in the config file)
     uint64_t next;          // Pointer to the next module (if any), check module_count
                             // in the stivale_struct
-} __attribute__((packed));
+};
 ```
