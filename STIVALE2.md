@@ -558,7 +558,7 @@ struct stivale2_mmap_entry {
 
 `type` is an enumeration that can have the following values:
 
-```
+```c
 enum stivale2_mmap_type : uint32_t {
     USABLE                 = 1,
     RESERVED               = 2,
