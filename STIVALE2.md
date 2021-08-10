@@ -823,7 +823,7 @@ struct stivale2_struct_tag_efi_system_table {
 
 #### Kernel file structure tag
 
-This tag provides the kernel with a pointer to a copy the raw executable file
+This tag provides the kernel with a pointer to a copy of the raw executable file
 of the kernel that the bootloader loaded.
 
 ```c
@@ -831,6 +831,20 @@ struct stivale2_struct_tag_kernel_file {
     uint64_t identifier;        // Identifier: 0xe599d90c2975584a
     uint64_t next;
     uint64_t kernel_file;       // Address of the raw kernel file
+};
+```
+
+#### Kernel file v2 structure tag
+
+This tag provides information about the raw kernel file that was loaded by the 
+bootloader.
+
+```c
+struct stivale2_struct_tag_kernel_file_v2 {
+    uint64_t identifier;       // Identifier: 0x37c13018a02c6ea2
+    uint64_t next;
+    uint64_t kernel_file;      // Address of the raw kernel file
+    uint64_t kernel_size;      // Size of the raw kernel file
 };
 ```
 

@@ -237,6 +237,15 @@ struct stivale2_struct_tag_kernel_file {
     uint64_t kernel_file;
 };
 
+#define STIVALE2_STRUCT_TAG_KERNEL_FILE_V2_ID 0x37c13018a02c6ea2
+
+struct stivale2_struct_tag_kernel_file_v2 {
+    uint64_t identifier; 
+    uint64_t next;
+    uint64_t kernel_file;
+    uint64_t kernel_size;
+};
+
 #define STIVALE2_STRUCT_TAG_KERNEL_SLIDE_ID 0xee80847d01506c57
 
 struct stivale2_struct_tag_kernel_slide {
