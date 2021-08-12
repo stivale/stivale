@@ -3,36 +3,52 @@
 
 #include <stdint.h>
 
+#if defined (_STIVALE_SPLIT_64) && defined (__i386__)
+
+#define _stivale_split64(NAME) \
+    union {                    \
+        uint32_t NAME;         \
+        uint32_t NAME##_lo;    \
+    };                         \
+    uint32_t NAME##_hi
+
+#else
+
+#define _stivale_split64(NAME) \
+    uint64_t NAME
+
+#endif
+
 // Anchor for non ELF kernels
 struct stivale2_anchor {
     uint8_t anchor[15];
     uint8_t bits;
-    uint64_t phys_load_addr;
-    uint64_t phys_bss_start;
-    uint64_t phys_bss_end;
-    uint64_t phys_stivale2hdr;
+    _stivale_split64(phys_load_addr);
+    _stivale_split64(phys_bss_start);
+    _stivale_split64(phys_bss_end);
+    _stivale_split64(phys_stivale2hdr);
 };
 
 struct stivale2_tag {
-    uint64_t identifier;
-    uint64_t next;
+    _stivale_split64(identifier);
+    _stivale_split64(next);
 };
 
 /* --- Header --------------------------------------------------------------- */
 /*  Information passed from the kernel to the bootloader                      */
 
 struct stivale2_header {
-    uint64_t entry_point;
-    uint64_t stack;
-    uint64_t flags;
-    uint64_t tags;
+    _stivale_split64(entry_point);
+    _stivale_split64(stack);
+    _stivale_split64(flags);
+    _stivale_split64(tags);
 };
 
 #define STIVALE2_HEADER_TAG_ANY_VIDEO_ID 0xc75c9fa92a44c4db
 
 struct stivale2_header_tag_any_video {
     struct stivale2_tag tag;
-    uint64_t preference;
+    _stivale_split64(preference);
 };
 
 #define STIVALE2_HEADER_TAG_FRAMEBUFFER_ID 0x3ecc1bc43d0f7971
@@ -51,8 +67,8 @@ struct stivale2_header_tag_framebuffer {
 
 struct stivale2_header_tag_terminal {
     struct stivale2_tag tag;
-    uint64_t flags;
-    uint64_t callback;
+    _stivale_split64(flags);
+    _stivale_split64(callback);
 };
 
 #define STIVALE2_TERM_CB_DEC 10
@@ -62,7 +78,7 @@ struct stivale2_header_tag_terminal {
 
 struct stivale2_header_tag_smp {
     struct stivale2_tag tag;
-    uint64_t flags;
+    _stivale_split64(flags);
 };
 
 #define STIVALE2_HEADER_TAG_5LV_PAGING_ID 0x932f477032007e8f
@@ -308,5 +324,7 @@ struct stivale2_struct_vmap {
     struct stivale2_tag tag;
     uint64_t addr;
 };
+
+#undef _stivale_split64
 
 #endif
