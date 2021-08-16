@@ -414,15 +414,18 @@ This tag does not have extra members.
 If this tag is present the bootloader is instructed to set up a terminal for
 use by the kernel at runtime. See "Terminal struct tag" below.
 
-The framebuffer header tag must be specified when passing this header tag, and
-this tag may inhibit the WC MTRR framebuffer feature.
+The terminal can run in either framebuffer or text mode, depending on the target
+video mode requested.
 
 ```c
 struct stivale2_header_tag_terminal {
     uint64_t identifier;          // Identifier: 0xa85d499b1823be72
     uint64_t next;
     uint64_t flags;               // Flags:
-                                  // All bits are undefined and must be 0.
+                                  // Bit 0: set if callback function is provided.
+                                  // All other bits are undefined and must be 0.
+    uint64_t callback;            // Address of the terminal callback function,
+                                  // (see "Terminal struct tag")
 };
 ```
 
@@ -664,6 +667,9 @@ struct stivale2_struct_tag_terminal {
     uint32_t flags;             // Bit 0: cols and rows provided.
                                 // Bit 1: max_length provided. If this bit is 0,
                                 //        assume a max_length of 1024.
+                                // Bit 2: if callback was requested and the
+                                //        bootloader supports it, this bit is set.
+                                // Bit 3: context control available.
                                 // All other bits undefined and set to 0.
     uint16_t cols;              // Columns of characters of the terminal.
                                 // Valid only if bit 0 of flags is set.
@@ -681,12 +687,127 @@ struct stivale2_struct_tag_terminal {
 The C prototype of this function is the following:
 
 ```c
-void stivale2_term_write(const char *string, size_t length);
+void stivale2_term_write(uint64_t ptr, uint64_t length);
 ```
 
 The calling convention matches the SysV C ABI for the specific architecture.
 
 The function is not thread-safe, nor reentrant.
+
+##### Terminal callback
+
+The callback is a function that is part of the kernel, which is called by the
+terminal during a `term_write()` call whenever an event or escape sequence cannot be
+handled by the bootloader's terminal alone, and the kernel may want to be notified in
+order to handle it itself.
+
+Returning from the callback will resume the `term_write()` call which will return
+to its caller normally.
+
+Not returning from a callback may leave the terminal in an undefined state and cause
+trouble.
+
+The callback function must have the following prototype:
+```c
+void stivale2_terminal_callback(uint64_t type, uint64_t, uint64_t, uint64_t);
+```
+The purpose of the last 3 arguments changes depending on the first, `type`, argument.
+
+The calling convention matches the SysV C ABI for the specific architecture.
+
+The types are as follows:
+
+* `STIVALE2_TERM_CB_DEC` - (type value: `10`)
+
+This callback is triggered whenever a DEC Private Mode (DECSET/DECRST) sequence
+is encountered that the terminal cannot handle alone. The arguments to this
+callback are: `type`, `values_count`, `values`, `final`.
+
+`values_count` is a count of how many values are in the array pointed to by `values`.
+`values` is a pointer to an array of `uint32_t` values, which are the values passed
+to the DEC private escape.
+`final` is the final character in the DEC private escape sequence (typically `l` or
+`h`).
+
+* `STIVALE2_TERM_CB_BELL` - (type value: `20`)
+
+This callback is triggered whenever a bell event is determined to be necessary
+(such as when a bell character `\a` is encountered). The arguments to this
+callback are: `type`, `unused1`, `unused2`, `unused3`.
+
+* `STIVALE2_TERM_CB_PRIVATE_ID` - (type value: `30`)
+
+This callback is triggered whenever the kernel has to respond to a DEC private
+identification request. The arguments to this callback are: `type`, `unused1`,
+`unused2`, `unused3`.
+
+* `STIVALE2_TERM_CB_STATUS_REPORT` - (type value `40`)
+
+This callback is triggered whenever the kernel has to respond to a ECMA-48
+status report request. The arguments to this callback are: `type`, `unused1`,
+`unused2`, `unused3`.
+
+* `STIVALE2_TERM_CB_POS_REPORT` - (type value `50`)
+
+This callback is triggered whenever the kernel has to respond to a ECMA-48
+cursor position report request. The arguments to this callback are: `type`, `x`,
+`y`, `unused3`. Where `x` and `y` represent the cursor position at the time the
+callback is triggered.
+
+* `STIVALE2_TERM_CB_KBD_LEDS` - (type value `60`)
+
+This callback is triggered whenever the kernel has to respond to a keyboard
+LED state change request. The arguments to this callback are: `type`, `led_state`,
+`unused2`, `unused3`. `led_state` can have one of the following values:
+`0, 1, 2, or 3`. These values mean: clear all LEDs, set scroll lock, set num lock,
+and set caps lock LED, respectively.
+
+* `STIVALE2_TERM_CB_MODE` - (type value: `70`)
+
+This callback is triggered whenever an ECMA-48 Mode Switch sequence
+is encountered that the terminal cannot handle alone. The arguments to this
+callback are: `type`, `values_count`, `values`, `final`.
+
+`values_count` is a count of how many values are in the array pointed to by `values`.
+`values` is a pointer to an array of `uint32_t` values, which are the values passed
+to the mode switch escape.
+`final` is the final character in the mode switch escape sequence (typically `l` or
+`h`).
+
+* `STIVALE2_TERM_CB_LINUX` - (type value `80`)
+
+This callback is triggered whenever a private Linux escape sequence
+is encountered that the terminal cannot handle alone. The arguments to this
+callback are: `type`, `values_count`, `values`, `unused3`.
+
+`values_count` is a count of how many values are in the array pointed to by `values`.
+`values` is a pointer to an array of `uint32_t` values, which are the values passed
+to the Linux private escape.
+
+##### Terminal context control
+
+If context control is available, the `term_write` function can additionally be
+used to set and restore terminal context, and refresh the terminal fully.
+
+In order to achieve these, special values for `length` are passed.
+These values are:
+```c
+#define STIVALE2_TERM_CTX_SIZE ((uint64_t)(-1))
+#define STIVALE2_TERM_CTX_SAVE ((uint64_t)(-2))
+#define STIVALE2_TERM_CTX_RESTORE ((uint64_t)(-3))
+#define STIVALE2_TERM_FULL_REFRESH ((uint64_t)(-4))
+```
+
+For `CTX_SIZE`, the `ptr` variable has to point to a location to which the terminal
+will *write* a single `uint64_t` which contains the size of the terminal context.
+
+For `CTX_SAVE` and `CTX_RESTORE`, the `ptr` variable has to point to a location
+to which the terminal will *save* or *restore* its context from, respectively.
+This location must have a size congruent to the value received from `CTX_SIZE`.
+
+For `FULL_REFRESH`, the `ptr` variable is unused. This routine is to be used after
+control of the framebuffer is taken over and the bootloader's terminal has to
+*fully* repaint the framebuffer to avoid inconsistencies.
 
 ##### x86_64
 
@@ -704,10 +825,11 @@ GDT is loaded with at least the following descriptors in this specific order:
   - 64-bit data descriptor. Base and limit irrelevant. Writable.
 
 * The currently loaded virtual address space is still the one provided at entry
-by the bootloader, or a custom virtual address space is loaded which maps at least
-the same regions as the bootloader provided one, with the same flags.
+by the bootloader, or a custom virtual address space is loaded which identity maps
+the framebuffer memory region and all the bootloader reclaimable memory regions, with
+read, write, and execute permissions.
 
-* The routine is called *by its physical address.*
+* The routine is called *by its physical address* which should be identity mapped.
 
 * Bootloader-reclaimable memory entries are left untouched until after the kernel
 is done utilising bootloader-provided facilities (this terminal being one of them).
@@ -735,6 +857,9 @@ the next line (scrolling when necessary), and that `'\b'` (`0x08`) is the backsp
 character that moves the cursor over the previous character on screen.
 
 All other expansions on this basic set of features are implementation specific.
+
+Limine, the reference stivale2 implementation, supports a Linux console compatible
+terminal, which is a superset of a VT100 compatible terminal.
 
 #### Modules structure tag
 
@@ -836,7 +961,7 @@ struct stivale2_struct_tag_kernel_file {
 
 #### Kernel file v2 structure tag
 
-This tag provides information about the raw kernel file that was loaded by the 
+This tag provides information about the raw kernel file that was loaded by the
 bootloader.
 
 ```c
