@@ -351,22 +351,22 @@ struct stivale2_struct_vmap {
 
 struct stivale2_struct_platform_ops {
     struct stivale2_tag tag;
-    void (*map_page)(int proc_id, void (*palloc_align)(size_t size, size_t align), void *phys, void *virt, unsigned int flags);
-    void (*unmap_page)(int proc_id, void (*pfree)(void *ptr), void *virt);
-    void *(*get_page)(int proc_id, void *virt);
-    void (*set_page)(int proc_id, void *virt, void *new_phys, unsigned int flags);
-    void (*mmu_on)(int proc_id, void (*palloc_align)(size_t size, size_t align));
-    void (*mmu_off)(int proc_id, void (*pfree)(void *ptr));
-    void *(*get_va_space)(int proc_id);
-    void (*set_va_space)(int proc_id, void *va_space);
-    void (*io_inb)(unsigned int io_addr, uint8_t data); /* Character */
-    uint8_t (*io_outb)(unsigned int io_addr);
-    void (*io_inw)(unsigned int io_addr, uint16_t data); /* Half-word */
-    uint16_t (*io_outw)(unsigned int io_addr);
-    void (*io_ind)(unsigned int io_addr, uint32_t data); /* Full-word */
-    uint32_t (*io_outd)(unsigned int io_addr);
-    void (*io_inq)(unsigned int io_addr, uint64_t data); /* Double-word */
-    uint64_t (*io_outq)(unsigned int io_addr);
+    void (*map_page)(uint8_t proc_id, void (*palloc_align)(uint32_t size, uint32_t align), void *phys, void *virt, uint8_t flags);
+    void (*unmap_page)(uint8_t proc_id, void (*pfree)(void *ptr), void *virt);
+    void *(*get_page)(uint8_t proc_id, void *virt);
+    void (*set_page)(uint8_t proc_id, void *virt, void *new_phys, uint8_t flags);
+    void (*mmu_on)(uint8_t proc_id, void (*palloc_align)(uint32_t size, uint16_t align));
+    void (*mmu_off)(uint8_t proc_id, void (*pfree)(void *ptr));
+    void *(*get_va_space)(uint8_t proc_id);
+    void (*set_va_space)(uint8_t proc_id, void *va_space);
+    void (*io_inb)(uint32_t io_addr, uint8_t data); /* Character */
+    uint8_t (*io_outb)(uint32_t io_addr);
+    void (*io_inw)(uint32_t io_addr, uint16_t data); /* Half-word */
+    uint16_t (*io_outw)(uint32_t io_addr);
+    void (*io_ind)(uint32_t io_addr, uint32_t data); /* Full-word */
+    uint32_t (*io_outd)(uint32_t io_addr);
+    void (*io_inq)(uint32_t io_addr, uint64_t data); /* Double-word */
+    uint64_t (*io_outq)(uint32_t io_addr);
     uint8_t bits;
 };
 
