@@ -1091,3 +1091,32 @@ struct stivale2_struct_vmap {
     uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
 };
 ```
+
+### Platform-specific Functions
+
+This tag provides an abstraction of the platform the kernel is running on
+
+```c
+struct stivale2_struct_platform_ops {
+    struct stivale2_tag tag;
+    void (*map_page)(int proc_id, void (*palloc_align)(size_t size, size_t align), void *phys, void *virt, unsigned int flags); // Maps a page, requires a physical allocator with alignment support
+    void (*unmap_page)(int proc_id, void (*pfree)(void *ptr), void *virt); // Unmaps a page, requires a physical allocator with freeing
+    void *(*get_page)(int proc_id, void *virt); // Obtains a pointer to a page by virtual address
+    void (*set_page)(int proc_id, void *virt, void *new_phys, unsigned int flags); // Sets a page
+    void (*mmu_on)(int proc_id, void (*palloc_align)(size_t size, size_t align)); // Turns the MMU on (requires physical allocator for initial page tables)
+    void (*mmu_off)(int proc_id, void (*pfree)(void *ptr)); // Turns the MMU off
+    void *(*get_va_space)(int proc_id); // Obtains the virtual address space (pointer to root page table)
+    void (*set_va_space)(int proc_id, void *va_space); // Sets the virtual address space
+
+    // On platforms without I/O bound instructions these shall map to MMIO-instructions
+    void (*io_inb)(unsigned int io_addr, uint8_t data); // Character
+    uint8_t (*io_outb)(unsigned int io_addr);
+    void (*io_inw)(unsigned int io_addr, uint16_t data); // Half-word
+    uint16_t (*io_outw)(unsigned int io_addr);
+    void (*io_ind)(unsigned int io_addr, uint32_t data); // Full-word
+    uint32_t (*io_outd)(unsigned int io_addr);
+    void (*io_inq)(unsigned int io_addr, uint64_t data); // Double-word
+    uint64_t (*io_outq)(unsigned int io_addr);
+    uint8_t bits; // Tells the bits the CPU currently has
+};
+```

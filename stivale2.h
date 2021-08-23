@@ -336,6 +336,40 @@ struct stivale2_struct_vmap {
     uint64_t addr;
 };
 
+#define STIVALE2_STRUCT_TAG_PLATFORM_OPS 0xb0e6b3f8e7e7ca4a
+
+/* Platform-specifics - etc */
+#ifdef __x86_64__
+#   define STIVALE2_PAGE_READ 1
+#   define STIVALE2_PAGE_WRITE 1
+#   define STIVALE2_PAGE_SIZE 4096
+#else
+#   define STIVALE2_PAGE_READ 0
+#   define STIVALE2_PAGE_WRITE 0
+#   define STIVALE2_PAGE_SIZE 4096
+#endif
+
+struct stivale2_struct_platform_ops {
+    struct stivale2_tag tag;
+    void (*map_page)(int proc_id, void (*palloc_align)(size_t size, size_t align), void *phys, void *virt, unsigned int flags);
+    void (*unmap_page)(int proc_id, void (*pfree)(void *ptr), void *virt);
+    void *(*get_page)(int proc_id, void *virt);
+    void (*set_page)(int proc_id, void *virt, void *new_phys, unsigned int flags);
+    void (*mmu_on)(int proc_id, void (*palloc_align)(size_t size, size_t align));
+    void (*mmu_off)(int proc_id, void (*pfree)(void *ptr));
+    void *(*get_va_space)(int proc_id);
+    void (*set_va_space)(int proc_id, void *va_space);
+    void (*io_inb)(unsigned int io_addr, uint8_t data); /* Character */
+    uint8_t (*io_outb)(unsigned int io_addr);
+    void (*io_inw)(unsigned int io_addr, uint16_t data); /* Half-word */
+    uint16_t (*io_outw)(unsigned int io_addr);
+    void (*io_ind)(unsigned int io_addr, uint32_t data); /* Full-word */
+    uint32_t (*io_outd)(unsigned int io_addr);
+    void (*io_inq)(unsigned int io_addr, uint64_t data); /* Double-word */
+    uint64_t (*io_outq)(unsigned int io_addr);
+    uint8_t bits;
+};
+
 #undef _stivale2_split64
 
 #endif
