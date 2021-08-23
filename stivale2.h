@@ -342,24 +342,27 @@ struct stivale2_struct_vmap {
 #ifdef __x86_64__
 #   define STIVALE2_PAGE_READ 1
 #   define STIVALE2_PAGE_WRITE 1
-#   define STIVALE2_PAGE_SIZE 4096
+#   define STIVALE2_PAGE_RDWR (STIVALE2_PAGE_READ | STIVALE2_PAGE_WRITE)
 #else
 #   define STIVALE2_PAGE_READ 0
 #   define STIVALE2_PAGE_WRITE 0
-#   define STIVALE2_PAGE_SIZE 4096
+#   define STIVALE2_PAGE_RDWR 0
 #endif
 
 struct stivale2_struct_platform_ops {
     struct stivale2_tag tag;
-    void (*map_page)(uint8_t proc_id, void (*palloc_align)(uint32_t size, uint32_t align), void *phys, void *virt, uint8_t flags);
-    void (*unmap_page)(uint8_t proc_id, void (*pfree)(void *ptr), void *virt);
-    void *(*get_page)(uint8_t proc_id, void *virt);
-    void (*set_page)(uint8_t proc_id, void *virt, void *new_phys, uint8_t flags);
-    void (*mmu_on)(uint8_t proc_id, void (*palloc_align)(uint32_t size, uint16_t align));
-    void (*mmu_off)(uint8_t proc_id, void (*pfree)(void *ptr));
-    void *(*get_va_space)(uint8_t proc_id);
-    void (*set_va_space)(uint8_t proc_id, void *va_space);
-    void (*io_inb)(uint32_t io_addr, uint8_t data); /* Character */
+    uint32_t page_size;
+    int (*map_page)(void (*palloc_align)(uint32_t size, uint32_t align), void *phys, void *virt, uint8_t flags);
+    int (*unmap_page)(void (*pfree)(void *ptr), void *virt);
+    int *(*get_page)(void *virt);
+    int (*set_page)(void *virt, void *new_phys, uint8_t flags);
+    int (*mmu_on)(void (*palloc_align)(uint32_t size, uint16_t align));
+    int (*mmu_off)(void (*pfree)(void *ptr));
+    int *(*get_va_space)(void);
+    int (*set_va_space)(void *va_space);
+    int (*irq_init)(void);
+    int (*irq_set)(void (*handler)(uint64_t id), uint16_t id);
+    int (*io_inb)(uint32_t io_addr, uint8_t data); /* Character */
     uint8_t (*io_outb)(uint32_t io_addr);
     void (*io_inw)(uint32_t io_addr, uint16_t data); /* Half-word */
     uint16_t (*io_outw)(uint32_t io_addr);
@@ -367,7 +370,6 @@ struct stivale2_struct_platform_ops {
     uint32_t (*io_outd)(uint32_t io_addr);
     void (*io_inq)(uint32_t io_addr, uint64_t data); /* Double-word */
     uint64_t (*io_outq)(uint32_t io_addr);
-    uint8_t bits;
 };
 
 #undef _stivale2_split64

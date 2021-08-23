@@ -1098,25 +1098,29 @@ This tag provides an abstraction of the platform the kernel is running on
 
 ```c
 struct stivale2_struct_platform_ops {
-    struct stivale2_tag tag;
-    void (*map_page)(int proc_id, void (*palloc_align)(size_t size, size_t align), void *phys, void *virt, unsigned int flags); // Maps a page, requires a physical allocator with alignment support
-    void (*unmap_page)(int proc_id, void (*pfree)(void *ptr), void *virt); // Unmaps a page, requires a physical allocator with freeing
-    void *(*get_page)(int proc_id, void *virt); // Obtains a pointer to a page by virtual address
-    void (*set_page)(int proc_id, void *virt, void *new_phys, unsigned int flags); // Sets a page
-    void (*mmu_on)(int proc_id, void (*palloc_align)(size_t size, size_t align)); // Turns the MMU on (requires physical allocator for initial page tables)
-    void (*mmu_off)(int proc_id, void (*pfree)(void *ptr)); // Turns the MMU off
-    void *(*get_va_space)(int proc_id); // Obtains the virtual address space (pointer to root page table)
-    void (*set_va_space)(int proc_id, void *va_space); // Sets the virtual address space
+    struct stivale2_tag tag; // Identifier: 0xb0e6b3f8e7e7ca4a
+
+    uint32_t page_size; // Size of a page
+    int (*map_page)(void (*palloc_align)(uint32_t size, uint32_t align), void *phys, void *virt, uint8_t flags); // Maps a page, requires a physical allocator with alignment support
+    int (*unmap_page)(void (*pfree)(void *ptr), void *virt); // Unmaps a page, requires a physical allocator with freeing
+    int *(*get_page)(void *virt); // Obtains a pointer to a page by virtual address
+    int (*set_page)(void *virt, void *new_phys, uint8_t flags); // Sets a page
+    int (*mmu_on)(void (*palloc_align)(size_t size, size_t align)); // Turns the MMU on (requires physical allocator for initial page tables)
+    int (*mmu_off)(void (*pfree)(void *ptr)); // Turns the MMU off
+    int *(*get_va_space)(void); // Obtains the virtual address space (pointer to root page table)
+    int (*set_va_space)(void *va_space); // Sets the virtual address space
+
+    int (*irq_init)(void); // Initialize IRQ table routing
+    int (*irq_set)(void (*handler)(uint64_t id), uint16_t id);
 
     // On platforms without I/O bound instructions these shall map to MMIO-instructions
     void (*io_inb)(unsigned int io_addr, uint8_t data); // Character
-    uint8_t (*io_outb)(unsigned int io_addr);
+    uint8_t (*io_outb)(uint32_t io_addr);
     void (*io_inw)(unsigned int io_addr, uint16_t data); // Half-word
-    uint16_t (*io_outw)(unsigned int io_addr);
-    void (*io_ind)(unsigned int io_addr, uint32_t data); // Full-word
-    uint32_t (*io_outd)(unsigned int io_addr);
-    void (*io_inq)(unsigned int io_addr, uint64_t data); // Double-word
-    uint64_t (*io_outq)(unsigned int io_addr);
-    uint8_t bits; // Tells the bits the CPU currently has
+    uint16_t (*io_outw)(uint32_t io_addr);
+    void (*io_ind)(uint32_t io_addr, uint32_t data); // Full-word
+    uint32_t (*io_outd)(uint32_t io_addr);
+    void (*io_inq)(uint32_t io_addr, uint64_t data); // Double-word
+    uint64_t (*io_outq)(uint32_t io_addr);
 };
 ```
