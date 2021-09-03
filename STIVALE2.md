@@ -1008,7 +1008,7 @@ struct stivale2_struct_tag_smp {
 
 ```c
 struct stivale2_smp_info {
-    uint32_t acpi_processor_uid; // ACPI Processor UID as specified by MADT
+    uint32_t processor_id;       // ACPI Processor UID as specified by MADT
     uint32_t lapic_id;           // LAPIC ID as specified by MADT
     uint64_t target_stack;       // The stack that will be loaded in ESP/RSP
                                  // once the goto_address field is loaded.
