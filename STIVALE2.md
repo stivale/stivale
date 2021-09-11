@@ -67,19 +67,16 @@ In a bootloader-defined way, the kernel may communicate to the bootloader that t
 kernel is a _tag-less_ stivale2 kernel. This indicates that the kernel does not contain
 a stivale2 header, but it should be assumed these defaults are set:
  - The entrypoint value is set to the ELF entrypoint.
- - The stack is allocated by the bootloader and is 16K, and is mapped at:
-  1. 0xffff900000000000 (4-level paging)
-  2. 0xff00100000000000 (5-level paging)
-  3. vmap_high + 0x0000100000000000 (non-x86 architectures)
+ - The stack is allocated by the bootloader and is 16K, and is mapped at a bootloader-defined address, with the stipulation that the half it is in must be the same as the half the kernel entrypoint is in
  - The flags are set as following:
-  0. KASLR is disabled
-  1. Higher-half pointers: If the entrypoint's most significat bit of e_entry in the ELF header is set.
-  2. Protected memory ranges: Enabled
+    1. KASLR is disabled
+    2. Higher-half pointers: If the entrypoint's most significat bit of e_entry in the ELF header is set.
+    3. Protected memory ranges: Enabled
  - The bootloader should assume the following tags:
-  0. The any video header tag, asking for a graphical framebuffer.
-  1. The terminal header tag.
-  2. The unmap null header tag.
-  3. The SMP header tag, without the x2apic flag and with the SMP stack allocation flag.
+    1. The any video header tag, asking for a graphical framebuffer.
+    2. The terminal header tag.
+    3. The unmap null header tag.
+    4. The SMP header tag, without the x2apic flag and with the SMP stack allocation flag.
 };
 
 ## Kernel entry machine state
