@@ -24,9 +24,12 @@ E.g.: having `. = 0xffffffff80000000 + 2M;` will load the kernel at physical add
 2MiB, and at virtual address `0xffffffff80200000`.
 
 For relocatable kernels, the bootloader may change the load addresses of the sections
-by adding a slide, if the specified location of a segment is not available for use.
+by adding a slide if the specified location of a segment is not available for use.
+This slide will never have a value not aligned to at least the same alignment as the
+ELF segment with the largest alignment.
 
-If KASLR is enabled, a random slide will be added unconditionally.
+If KASLR is enabled, a random slide, still maintaining the above alignment constraint,
+will be added unconditionally.
 
 If the kernel loads itself in the lower half, the bootloader will not perform the
 higher half relocation.
@@ -113,6 +116,8 @@ The A20 gate is opened.
 
 PIC/APIC IRQs are all masked.
 
+If booted by EFI/UEFI, boot services are exited.
+
 `rsp` is set to the requested stack as per stivale header. If the requested value is
 non-null, an invalid return address of 0 is pushed to the stack before jumping
 to the kernel.
@@ -152,6 +157,8 @@ The A20 gate is enabled.
 
 PIC/APIC IRQs are all masked.
 
+If booted by EFI/UEFI, boot services are exited.
+
 `esp` is set to the requested stack as per stivale header. An invalid return address
 of 0 is pushed to the stack before jumping to the kernel.
 
@@ -188,8 +195,9 @@ and they are guaranteed to not overlap other sections of the memory map.
 
 ## stivale header (.stivalehdr)
 
-The kernel executable shall have a section `.stivalehdr` which will contain, or
-an anchor pointing to, the header that the bootloader will parse.
+The kernel executable shall have an ELF section named `.stivalehdr` which will
+contain the following header; or an anchor pointing to the following header for
+anchored kernels.
 
 Said header looks like this:
 ```c
