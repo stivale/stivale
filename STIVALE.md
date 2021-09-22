@@ -114,7 +114,7 @@ If stivale header flag bit 1 is set, then, if available, 5-level paging is enabl
 
 The A20 gate is opened.
 
-PIC/APIC IRQs are all masked.
+Legacy PIC and IO APIC IRQs are all masked.
 
 If booted by EFI/UEFI, boot services are exited.
 
@@ -155,7 +155,7 @@ PE is enabled (`cr0`).
 
 The A20 gate is enabled.
 
-PIC/APIC IRQs are all masked.
+Legacy PIC and IO APIC IRQs are all masked.
 
 If booted by EFI/UEFI, boot services are exited.
 
