@@ -127,6 +127,14 @@ struct stivale2_struct_tag_pmrs {
     struct stivale2_pmr pmrs[];
 };
 
+#define STIVALE2_STRUCT_TAG_KERNEL_BASE_ADDRESS_ID 0x060d78874a2a8af0
+
+struct stivale2_struct_tag_kernel_base_address {
+    struct stivale2_tag tag;
+    uint64_t physical_base_address;
+    uint64_t virtual_base_address;
+};
+
 #define STIVALE2_STRUCT_TAG_CMDLINE_ID 0xe5e76a1b4597a781
 
 struct stivale2_struct_tag_cmdline {

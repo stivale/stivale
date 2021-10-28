@@ -285,6 +285,8 @@ struct stivale2_header {
                             //        half or not.
                             // Bit 2: If set to 1, enables protected memory ranges.
                             //        See the relevant section.
+                            // Bit 3: If set to 1, enables fully virtual kernel mappings
+                            //        for PMRs. Only works if PMRs are enabled.
                             // All other bits are undefined and must be 0.
 
     uint64_t tags;          // Pointer to the first tag of the linked list of
@@ -310,6 +312,21 @@ undefined behaviour.
 For PMRs on the x86_64 platform, non-readable ranges are not possible, therefore
 they are ignored and forced readable in the MMU, but they are still reported back to
 the kernel in the struct tag.
+
+#### Fully virtual kernel mappings
+
+Bit 3 of the flags field enables fully virtual kernel mappings. This means that
+there no longer is an enforced `PHYSICAL_ADDRESS = VIRTUAL_ADDRESS - 0xffffffff80000000`
+correspondence for kernel image addresses, unlike when this bit is off.
+
+This bit is relevant in order to ensure load is always possible even if the otherwise
+corresponding physical address is not available, as the bootloader is allowed to
+pick any other physical load address, even without requiring the kernel to be
+relocatable or position independent. For KASLR, this also ensures there is a wider
+range of available slides even if physical memory would not otherwise suffice.
+
+When this feature is requested, and the bootloader supports it, the corresponding
+kernel base address struct tag (see below) is returned.
 
 ### stivale2 header tags
 
@@ -530,6 +547,32 @@ the range's permissions:
 #define STIVALE2_PMR_EXECUTABLE ((uint64_t)1 << 0)
 #define STIVALE2_PMR_WRITABLE   ((uint64_t)1 << 1)
 #define STIVALE2_PMR_READABLE   ((uint64_t)1 << 2)
+```
+
+When fully virtual kernel mappings are not enabled, the physical address of a range
+can be determined with the formula: `PHYSICAL_ADDRESS = VIRTUAL_ADDRESS - 0xffffffff80000000`.
+
+Otherwise, see the "kernel base address" structure tag.
+
+#### Kernel base address structure tag
+
+This tag is returned only if the kernel requested the "fully virtual kernel mappings"
+feature, PMRs are enabled, and the bootloader supports the feature.
+
+Unlike when fully virtual kernel mappings are disabled, there is no hard correspondence
+between the kernel's virtual load address and a physical address.
+
+This tag returns to the kernel its base physical, and virtual load addresses, so that for each
+PMR range, the corresponding physical address can be derived as such:
+`PHYSICAL_ADDRESS = PHYSICAL_BASE_ADDRESS + (VIRTUAL_ADDRESS - VIRTUAL_BASE_ADDRESS)`.
+
+```c
+struct stivale2_struct_tag_kernel_base_address {
+    uint64_t identifier;          // Identifier: 0x060d78874a2a8af0
+    uint64_t next;
+    uint64_t physical_base_address;
+    uint64_t virtual_base_address;
+};
 ```
 
 #### Command line structure tag
