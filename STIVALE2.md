@@ -225,6 +225,10 @@ All other general purpose registers are undefined.
 
 ## Low memory area
 
+__THIS IS DEPRECATED, DO NOT USE. USE THE MEMORY MAP FOR THIS.__
+__TO PREVENT THE BOOTLOADER FROM REFUSING TO BOOT IN CASE THIS AREA IS NOT AVAILABLE__
+__SET BIT 4 OF THE HEADER FLAGS!__
+
 For x86_64 and IA-32, stivale2 guarantees that an area of no less than 32 KiB is
 free and usable at physical memory address `0x70000`, regardless of what is
 specified in the memory map.
@@ -287,6 +291,9 @@ struct stivale2_header {
                             //        See the relevant section.
                             // Bit 3: If set to 1, enables fully virtual kernel mappings
                             //        for PMRs. Only works if PMRs are enabled.
+                            // Bit 4: Do NOT fail to boot if low memory area could not be
+                            //        allocated. THIS BIT SHOULD ALWAYS BE SET AS THIS
+                            //        FUNCTIONALITY IS DEPRECATED.
                             // All other bits are undefined and must be 0.
 
     uint64_t tags;          // Pointer to the first tag of the linked list of

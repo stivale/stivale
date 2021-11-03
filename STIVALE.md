@@ -169,6 +169,10 @@ All other general purpose registers are set to 0.
 
 ## Low memory area
 
+__THIS IS DEPRECATED, DO NOT USE. USE THE MEMORY MAP FOR THIS.__
+__TO PREVENT THE BOOTLOADER FROM REFUSING TO BOOT IN CASE THIS AREA IS NOT AVAILABLE__
+__SET BIT 4 OF THE HEADER FLAGS!__
+
 For x86_64 and IA-32, stivale guarantees that an area of no less than 32 KiB is
 free and usable at physical memory address `0x70000`, regardless of what is
 specified in the memory map.
@@ -227,6 +231,9 @@ struct stivale_header {
                       //        whether the stivale struct pointer argument passed
                       //        to the entry point function is in the higher
                       //        half or not.
+                      // bit 4  Do NOT fail to boot if low memory area could not be
+                      //        allocated. THIS BIT SHOULD ALWAYS BE SET AS THIS
+                      //        FUNCTIONALITY IS DEPRECATED.
                       // All other bits are undefined and must be 0.
 
     uint16_t framebuffer_width;   // These 3 values are parsed if a graphics mode
