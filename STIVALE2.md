@@ -16,12 +16,8 @@ the appropriate mode before loading the kernel. In the case of anchored kernels,
 the anchor provides information about which CPU mode to use.
 
 stivale2 natively supports (only for 64-bit ELF kernels) and encourages higher half kernels.
-The kernel can load itself at `0xffffffff80000000 + phys_base` (as defined in the linker script)
+The kernel can load itself at or above `0xffffffff80000000` (as defined in the linker script)
 and the bootloader will take care of everything else, no AT linker script directives needed.
-
-`phys_base` represents the actual physical base address of the kernel.
-E.g.: having `. = 0xffffffff80000000 + 2M;` will load the kernel at physical address
-2MiB, and at virtual address `0xffffffff80200000`.
 
 For relocatable kernels, the bootloader may change the load addresses of the sections
 by adding a slide if the specified location of a segment is not available for use.
@@ -45,7 +41,7 @@ information needed to perform kernel loading and handoff.
 Anchored kernels are useful for kernels in a.out, flat binary, or otherwise
 non-ELF format that support direct loading.
 
-PMRs will not be available for anchored kernels.
+PMRs and higher half relocation will not be available for anchored kernels.
 
 The stivale2 anchor can appear anywhere in the executable, but must be aligned on a
 16-byte boundary. Only the firstmost anchor that appears in the file is used.
@@ -90,7 +86,7 @@ If PMRs are requested, the bottom-most of the above mappings (the one marked as
 `(No PMRs only)`) will not be created, and in its place, only mappings
 that describe the kernel's loaded ELF segments with appropriately set MMU permissions
 will be created. For relocatable kernels, slides will be appropriately taken into
-account. PMRs are not available to lower half kernels.
+account. PMRs are not available to lower half or anchored kernels.
 
 If the "unmap NULL" header tag is specified, then page 0, or the first 4KiB of the
 virtual address space, is going to be unmapped.
@@ -253,7 +249,7 @@ reclaimable" may be used as usable memory. These areas are guaranteed to be alig
 to the smallest possible page size (4K on x86_64 and IA-32), for both base and length,
 and they are guaranteed to not overlap other sections of the memory map.
 
-## stivale2 header (.stivale2hdr)
+## stivale2 header
 
 The kernel executable shall have an ELF section named `.stivale2hdr` which will
 contain the following header; or an anchor pointing to the following header for
@@ -298,7 +294,7 @@ struct stivale2_header {
 
     uint64_t tags;          // Pointer to the first tag of the linked list of
                             // header tags.
-                            // See "stivale2 header tags" section.
+                            // See "stivale2 tags" section.
                             // The pointer can be either physical or, for higher
                             // half kernels, the virtual in-kernel address.
                             // NULL = no tags.
@@ -310,7 +306,7 @@ struct stivale2_header {
 Enabling protected memory ranges (bit 2 in the `flags` field of the main header
 struct) tells the stivale2-compliant bootloader that the kernel wants the top-most
 2 GiB of the address space to be mapped as per its ELF segments, rather than as a
-monolithic, all-permissions, block.
+monolithic, all-permissions, block mapped from physical address 0.
 
 Only 64-bit, higher half, ELF (non anchored) kernels can take advantage of this
 feature. Requesting this feature for 32-bit, lower half, or non-ELF kernels has
@@ -319,6 +315,9 @@ undefined behaviour.
 For PMRs on the x86_64 platform, non-readable ranges are not possible, therefore
 they are ignored and forced readable in the MMU, but they are still reported back to
 the kernel in the struct tag.
+
+If the ELF file contains segments whose virtual address is not at or above
+`0xffffffff80000000`, they will be ignored and not loaded.
 
 #### Fully virtual kernel mappings
 
@@ -332,24 +331,34 @@ pick any other physical load address, even without requiring the kernel to be
 relocatable or position independent. For KASLR, this also ensures there is a wider
 range of available slides even if physical memory would not otherwise suffice.
 
+It is recommended to always enable this feature, whenever possible.
+
 When this feature is requested, and the bootloader supports it, the corresponding
 kernel base address struct tag (see below) is returned.
 
-### stivale2 header tags
+## stivale2 structure
 
-The stivale2 header uses a mechanism to avoid having protocol versioning, but
-rather, feature-specific support detection.
-
-The kernel executable provides the bootloader with a linked list of structures,
-the first of which is pointed to by the `tags` entry of the stivale2 header.
-
-The bootloader is free to ignore kernel tags that it does not recognise.
-The kernel should make sure that the bootloader has properly interpreted the
-provided tags, either by checking returned tags or by other means.
-
-Each tag shall begine with these 2 members:
+The main stivale2 structure returned by the bootloader looks like this:
 ```c
-struct stivale2_hdr_tag {
+struct stivale2_struct {
+    char bootloader_brand[64];    // 0-terminated ASCII bootloader brand string
+    char bootloader_version[64];  // 0-terminated ASCII bootloader version string
+
+    uint64_t tags;          // Address of the first of the linked list of struct tags.
+                            // see "stivale2 tags" section.
+                            // NULL = no tags.
+};
+```
+
+## stivale2 tags
+
+stivale2 uses a mechanism to avoid having protocol versioning, but rather,
+feature-specific support detection.
+
+This mechanism is tags. Each tag is a structure which shall begin with these
+2 members, represented by the following structure:
+```c
+struct stivale2_tag {
     uint64_t identifier;
     uint64_t next;
 };
@@ -359,9 +368,11 @@ The `identifier` field identifies what feature the tag is requesting from the
 bootloader.
 
 The `next` field points to another tag in the linked list. A NULL value determines
-the end of the linked list. Just like the `tags` pointer in the stivale2 header,
-this value can either be a physical address or, for higher half kernels, the virtual
-in-kernel address.
+the end of the linked list. For header tags (kernel to bootloader), just like the
+`tags` pointer in the stivale2 header, this value can either be a physical address or,
+for higher half kernels, the virtual in-kernel address. For struct tags (bootloader
+to kernel), this can either be a physical or a higher half direct map address, as
+requested by the kernel in the main header.
 
 Tag structures can have more than just these 2 members, but these 2 members MUST
 appear at the beginning of any given tag.
@@ -369,7 +380,28 @@ appear at the beginning of any given tag.
 Tags can have no extra members and just serve as "flags" to enable some behaviour
 that does not require extra parameters.
 
-#### Any video header tag
+### Header tags vs. struct tags
+
+The kernel executable provides the bootloader with a linked list of tag structures,
+the first of which is pointed to by the `tags` entry of the stivale2 header.
+These are called "header tags".
+
+The bootloader is free to ignore kernel tags that it does not recognise.
+The kernel should make sure that the bootloader has properly interpreted the
+provided tags, either by checking returned tags or by other means.
+
+Likewise, the bootloader provides the kernel with another linked list of tag
+structures, the root of which can be found in the main stivale2 structure, passed
+to the kernel by platform specific means (see above).
+These are called "struct tags".
+
+The kernel is responsible for parsing the tags and the identifiers, and interpreting
+the tags that it supports, while handling in a graceful manner the tags it does not
+recognise.
+
+## List of header tags (kernel to bootloader)
+
+### Any video header tag
 
 This tag tells the stivale2-compliant bootloader that the kernel has no requirement
 for a framebuffer to be initialised.
@@ -389,8 +421,7 @@ kernel.
 
 ```c
 struct stivale2_header_tag_any_video {
-    uint64_t identifier;          // Identifier: 0xc75c9fa92a44c4db
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0xc75c9fa92a44c4db
     uint64_t preference;          // 0: prefer linear framebuffer
                                   // 1: prefer no linear framebuffer
                                   //    (CGA text mode if available)
@@ -398,7 +429,7 @@ struct stivale2_header_tag_any_video {
 };
 ```
 
-#### Framebuffer header tag
+### Framebuffer header tag
 
 This tag can be used alongside the "any video" header tag to specify further
 framebuffer preferences.
@@ -415,8 +446,7 @@ available.
 
 ```c
 struct stivale2_header_tag_framebuffer {
-    uint64_t identifier;          // Identifier: 0x3ecc1bc43d0f7971
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x3ecc1bc43d0f7971
     uint16_t framebuffer_width;   // If all values are set to 0
     uint16_t framebuffer_height;  // then the bootloader will pick the best possible
     uint16_t framebuffer_bpp;     // video mode automatically.
@@ -424,7 +454,7 @@ struct stivale2_header_tag_framebuffer {
 };
 ```
 
-#### Framebuffer MTRR write-combining header tag
+### Framebuffer MTRR write-combining header tag
 
 *Note: This tag is deprecated and considered legacy. Use is discouraged and*
 *it may not be supported on newer bootloaders.*
@@ -443,7 +473,7 @@ Identifier: `0x4c7bb07731282e00`
 
 This tag does not have extra members.
 
-#### Terminal header tag
+### Terminal header tag
 
 If this tag is present the bootloader is instructed to set up a terminal for
 use by the kernel at runtime. See "Terminal struct tag" below.
@@ -453,8 +483,7 @@ video mode requested.
 
 ```c
 struct stivale2_header_tag_terminal {
-    uint64_t identifier;          // Identifier: 0xa85d499b1823be72
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0xa85d499b1823be72
     uint64_t flags;               // Flags:
                                   // Bit 0: set if callback function is provided.
                                   // All other bits are undefined and must be 0.
@@ -463,7 +492,7 @@ struct stivale2_header_tag_terminal {
 };
 ```
 
-#### 5-level paging header tag
+### 5-level paging header tag
 
 The presence of this tag enables support for 5-level paging, if available.
 
@@ -471,7 +500,7 @@ Identifier: `0x932f477032007e8f`
 
 This tag does not have extra members.
 
-#### Unmap NULL header tag
+### Unmap NULL header tag
 
 The presence of this tag tells the bootloader to unmap the first page of the
 virtual address space before passing control to the kernel, for architectures
@@ -481,46 +510,22 @@ Identifier: `0x92919432b16fe7e7`
 
 This tag does not have extra members.
 
-#### SMP header tag
+### SMP header tag
 
 The presence of this tag enables support for booting up application processors.
 
 ```c
 struct stivale2_header_tag_smp {
-    uint64_t identifier;          // Identifier: 0x1ab015085f3273df
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x1ab015085f3273df
     uint64_t flags;               // Flags:
                                   //   bit 0: 0 = use xAPIC, 1 = use x2APIC (if available)
                                   // All other bits are undefined and must be 0.
 };
 ```
 
-## stivale2 structure
+## List of struct tags (bootloader to kernel)
 
-The stivale2 structure returned by the bootloader looks like this:
-```c
-struct stivale2_struct {
-    char bootloader_brand[64];    // 0-terminated ASCII bootloader brand string
-    char bootloader_version[64];  // 0-terminated ASCII bootloader version string
-
-    uint64_t tags;          // Address of the first of the linked list of tags.
-                            // see "stivale2 structure tags" section.
-                            // NULL = no tags.
-};
-```
-
-### stivale2 structure tags
-
-These tags work *very* similarly to the header tags, with the main difference being
-that these tags are returned to the kernel by the bootloader.
-
-See "stivale2 header tags".
-
-The kernel is responsible for parsing the tags and the identifiers, and interpreting
-the tags that it supports, while handling in a graceful manner the tags it does not
-recognise.
-
-#### PMRs structure tag
+### PMRs structure tag
 
 This tag reports to the kernel that the bootloader recognised the PMR flag
 in the main header and it has successfully mapped the kernel as per ELF segments.
@@ -530,8 +535,7 @@ mapped by the bootloader. Ranges bases and sizes are at least 4KiB aligned.
 
 ```c
 struct stivale2_struct_tag_pmrs {
-    uint64_t identifier;          // Identifier: 0x5df266a64047b6bd
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x5df266a64047b6bd
     uint64_t entries;             // Count of PMRs in following array
     struct stivale2_pmr pmrs[];   // Array of PMR structs
 };
@@ -561,7 +565,7 @@ can be determined with the formula: `PHYSICAL_ADDRESS = VIRTUAL_ADDRESS - 0xffff
 
 Otherwise, see the "kernel base address" structure tag.
 
-#### Kernel base address structure tag
+### Kernel base address structure tag
 
 This tag is returned only if the kernel requested the "fully virtual kernel mappings"
 feature, PMRs are enabled, and the bootloader supports the feature.
@@ -575,40 +579,37 @@ PMR range, the corresponding physical address can be derived as such:
 
 ```c
 struct stivale2_struct_tag_kernel_base_address {
-    uint64_t identifier;          // Identifier: 0x060d78874a2a8af0
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x060d78874a2a8af0
     uint64_t physical_base_address;
     uint64_t virtual_base_address;
 };
 ```
 
-#### Command line structure tag
+### Command line structure tag
 
 This tag reports to the kernel the command line string that was passed to it by
 the bootloader.
 
 ```c
 struct stivale2_struct_tag_cmdline {
-    uint64_t identifier;          // Identifier: 0xe5e76a1b4597a781
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0xe5e76a1b4597a781
     uint64_t cmdline;             // Pointer to a null-terminated cmdline
 };
 ```
 
-#### Memory map structure tag
+### Memory map structure tag
 
 This tag reports to the kernel the memory map built by the bootloader.
 
 ```c
 struct stivale2_struct_tag_memmap {
-    uint64_t identifier;          // Identifier: 0x2187f79e8612de07
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x2187f79e8612de07
     uint64_t entries;             // Count of memory map entries
     struct stivale2_mmap_entry memmap[];  // Array of memory map entries
 };
 ```
 
-###### Memory map entry
+#### Memory map entry
 
 ```c
 struct stivale2_mmap_entry {
@@ -648,14 +649,13 @@ Usable and bootloader reclaimable entries are guaranteed not to overlap with any
 To the contrary, all non-usable entries (including kernel/modules) are not guaranteed any alignment, nor
 is it guaranteed that they do not overlap other entries.
 
-#### Framebuffer structure tag
+### Framebuffer structure tag
 
 This tag reports to the kernel the currently set up framebuffer details, if any.
 
 ```c
 struct stivale2_struct_tag_framebuffer {
-    uint64_t identifier;          // Identifier: 0x506461d2950408fa
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x506461d2950408fa
     uint64_t framebuffer_addr;    // Address of the framebuffer
     uint16_t framebuffer_width;   // Width and height in pixels
     uint16_t framebuffer_height;
@@ -672,14 +672,13 @@ struct stivale2_struct_tag_framebuffer {
 };
 ```
 
-#### Text mode structure tag
+### Text mode structure tag
 
 This tag reports to the kernel the currently set up CGA text mode details, if any.
 
 ```c
 struct stivale2_struct_tag_textmode {
-    uint64_t identifier;          // Identifier: 0x38d74c23e0dca893
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x38d74c23e0dca893
     uint64_t address;             // Address of the text mode buffer
     uint16_t unused;              // Unused, must be 0
     uint16_t rows;                // How many rows
@@ -688,21 +687,20 @@ struct stivale2_struct_tag_textmode {
 };
 ```
 
-#### EDID information structure tag
+### EDID information structure tag
 
 This tag provides the kernel with EDID information as acquired by the firmware.
 
 ```c
 struct stivale2_struct_tag_edid {
-    uint64_t identifier;        // Identifier: 0x968609d7af96b845
-    uint64_t next;
-    uint64_t edid_size;         // The amount of bytes that make up the
-                                // edid_information[] array
+    struct stivale2_tag tag;      // Identifier: 0x968609d7af96b845
+    uint64_t edid_size;           // The amount of bytes that make up the
+                                  // edid_information[] array
     uint8_t  edid_information[];
 };
 ```
 
-#### Framebuffer MTRR write-combining structure tag
+### Framebuffer MTRR write-combining structure tag
 
 *Note: This tag is deprecated and considered legacy. Use is discouraged and*
 *it may not be supported on newer bootloaders.*
@@ -714,7 +712,7 @@ Identifier: `0x6bc1a78ebe871172`
 
 This tag does not have extra members.
 
-#### Terminal structure tag
+### Terminal structure tag
 
 If a terminal was requested (see "Terminal header tag" above), and the feature
 is supported, this tag is returned to the kernel to provide it with the physical
@@ -722,8 +720,7 @@ entry point of the `stivale2_term_write()` function.
 
 ```c
 struct stivale2_struct_tag_terminal {
-    uint64_t identifier;        // Identifier: 0xc2b3f4c3233b0974
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xc2b3f4c3233b0974
     uint32_t flags;             // Bit 0: cols and rows provided.
                                 // Bit 1: max_length provided. If this bit is 0,
                                 //        assume a max_length of 1024.
@@ -754,7 +751,7 @@ The calling convention matches the SysV C ABI for the specific architecture.
 
 The function is not thread-safe, nor reentrant.
 
-##### Terminal callback
+#### Terminal callback
 
 The callback is a function that is part of the kernel, which is called by the
 terminal during a `term_write()` call whenever an event or escape sequence cannot be
@@ -844,7 +841,7 @@ callback are: `type`, `values_count`, `values`, `unused3`.
 `values` is a pointer to an array of `uint32_t` values, which are the values passed
 to the Linux private escape.
 
-##### Terminal context control
+#### Terminal context control
 
 If context control is available, the `term_write` function can additionally be
 used to set and restore terminal context, and refresh the terminal fully.
@@ -869,7 +866,7 @@ For `FULL_REFRESH`, the `ptr` variable is unused. This routine is to be used aft
 control of the framebuffer is taken over and the bootloader's terminal has to
 *fully* repaint the framebuffer to avoid inconsistencies.
 
-##### x86_64
+#### x86_64
 
 Additionally, the kernel must ensure, when calling this routine, that:
 
@@ -905,11 +902,11 @@ No registers other than the segment registers and general purpose registers are
 going to be used. Especially, this means that there is no need to save and restore
 FPU, SSE, or AVX state when calling the terminal write function.
 
-##### IA-32
+#### IA-32
 
 This service is not provided to IA-32 kernels.
 
-##### Terminal characteristics
+#### Terminal characteristics
 
 It is guaranteed that the terminal be able to print the 7-bit ASCII character set,
 that `'\n'` (`0x0a`) is the newline character that puts the cursor to the beginning of
@@ -921,14 +918,13 @@ All other expansions on this basic set of features are implementation specific.
 Limine, the reference stivale2 implementation, supports a Linux console compatible
 terminal, which is a superset of a VT100 compatible terminal.
 
-#### Modules structure tag
+### Modules structure tag
 
 This tag lists modules that the bootloader loaded alongside the kernel, if any.
 
 ```c
 struct stivale2_struct_tag_modules {
-    uint64_t identifier;          // Identifier: 0x4b6fe466aade04ce
-    uint64_t next;
+    struct stivale2_tag tag;      // Identifier: 0x4b6fe466aade04ce
     uint64_t module_count;        // Count of loaded modules
     struct stivale2_module modules[]; // Array of module descriptors
 };
@@ -943,117 +939,108 @@ struct stivale2_module {
 };
 ```
 
-#### RSDP structure tag
+### RSDP structure tag
 
 This tag reports to the kernel the location of the ACPI RSDP structure in memory.
 
 ```c
 struct stivale2_struct_tag_rsdp {
-    uint64_t identifier;        // Identifier: 0x9e1786930a375e78
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x9e1786930a375e78
     uint64_t rsdp;              // Pointer to the ACPI RSDP structure
 };
 ```
 
-#### SMBIOS structure tag
+### SMBIOS structure tag
 
 This tag reports to the kernel the location of the SMBIOS entry points in memory.
 
 ```c
 struct stivale2_struct_tag_smbios {
-    uint64_t identifier;        // Identifier: 0x274bd246c62bf7d1
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x274bd246c62bf7d1
     uint64_t flags;             // Flags for future use. Currently unused and must be 0.
     uint64_t smbios_entry_32;   // 32-bit SMBIOS entry point address. 0 if unavailable.
     uint64_t smbios_entry_64;   // 64-bit SMBIOS entry point address. 0 if unavailable.
 };
 ```
 
-#### Epoch structure tag
+### Epoch structure tag
 
 This tag reports to the kernel the current UNIX epoch, as per RTC.
 
 ```c
 struct stivale2_struct_tag_epoch {
-    uint64_t identifier;        // Identifier: 0x566a7bed888e1407
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x566a7bed888e1407
     uint64_t epoch;             // UNIX epoch at boot, read from system RTC
 };
 ```
 
-#### Firmware structure tag
+### Firmware structure tag
 
 This tag reports to the kernel info about the firmware.
 
 ```c
 struct stivale2_struct_tag_firmware {
-    uint64_t identifier;        // Identifier: 0x359d837855e3858c
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x359d837855e3858c
     uint64_t flags;             // Bit 0: 0 = UEFI, 1 = BIOS
 };
 ```
 
-#### EFI system table structure tag
+### EFI system table structure tag
 
 This tag provides the kernel with a pointer to the EFI system table
 if available.
 
 ```c
 struct stivale2_struct_tag_efi_system_table {
-    uint64_t identifier;        // Identifier: 0x4bc5ec15845b558e
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x4bc5ec15845b558e
     uint64_t system_table;      // Address of the EFI system table
 };
 ```
 
-#### Kernel file structure tag
+### Kernel file structure tag
 
 This tag provides the kernel with a pointer to a copy of the raw executable file
 of the kernel that the bootloader loaded.
 
 ```c
 struct stivale2_struct_tag_kernel_file {
-    uint64_t identifier;        // Identifier: 0xe599d90c2975584a
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xe599d90c2975584a
     uint64_t kernel_file;       // Address of the raw kernel file
 };
 ```
 
-#### Kernel file v2 structure tag
+### Kernel file v2 structure tag
 
 This tag provides information about the raw kernel file that was loaded by the
 bootloader.
 
 ```c
 struct stivale2_struct_tag_kernel_file_v2 {
-    uint64_t identifier;       // Identifier: 0x37c13018a02c6ea2
-    uint64_t next;
+    struct stivale2_tag tag;   // Identifier: 0x37c13018a02c6ea2
     uint64_t kernel_file;      // Address of the raw kernel file
     uint64_t kernel_size;      // Size of the raw kernel file
 };
 ```
 
-#### Kernel slide structure tag
+### Kernel slide structure tag
 
 This tag returns the slide that the bootloader applied over the kernel's load
 address as a positive offset.
 
 ```c
 struct stivale2_struct_tag_kernel_slide {
-    uint64_t identifier;        // Identifier: 0xee80847d01506c57
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xee80847d01506c57
     uint64_t kernel_slide;      // Kernel slide
 };
 ```
 
-#### SMP structure tag
+### SMP structure tag
 
 This tag reports to the kernel info about a multiprocessor environment.
 
 ```c
 struct stivale2_struct_tag_smp {
-    uint64_t identifier;        // Identifier: 0x34d1d96339647025
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0x34d1d96339647025
     uint64_t flags;             // Flags:
                                 //   bit 0: Set if x2APIC was requested and it
                                 //          was supported and enabled.
@@ -1104,7 +1091,7 @@ struct stivale2_smp_info {
 };
 ```
 
-#### PXE server info structure tag
+### PXE server info structure tag
 
 This tag reports that the kernel has been booted via PXE, and reports the server ip that it was booted from.
 
@@ -1115,39 +1102,36 @@ struct stivale2_struct_tag_pxe_server_info {
 };
 ```
 
-#### MMIO32 UART tag
+### MMIO32 UART tag
 
 This tag reports that there is a memory mapped UART port and its address. To write to this port, write the character, zero extended to a 32 bit unsigned integer to the address provided.
 
 ```c
 struct stivale2_struct_tag_mmio32_uart {
-    uint64_t identifier;        // Identifier: 0xb813f9b8dbc78797
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xb813f9b8dbc78797
     uint64_t addr;              // The address of the UART port
 };
 ```
 
-#### Device tree blob tag
+### Device tree blob tag
 
 This tag describes a device tree blob for the platform.
 
 ```c
 struct stivale2_struct_tag_dtb {
-    uint64_t identifier;        // Identifier: 0xabb29bd49a2833fa
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xabb29bd49a2833fa
     uint64_t addr;              // The address of the dtb
     uint64_t size;              // The size of the dtb
 };
 ```
 
-#### High memory mapping
+### High memory mapping
 
 This tag describes the high physical memory location (`VMAP_HIGH`)
 
 ```c
 struct stivale2_struct_vmap {
-    uint64_t identifier;        // Identifier: 0xb0ed257db18cb58f
-    uint64_t next;
+    struct stivale2_tag tag;    // Identifier: 0xb0ed257db18cb58f
     uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
 };
 ```
