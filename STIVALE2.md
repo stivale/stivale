@@ -1022,6 +1022,38 @@ struct stivale2_struct_tag_kernel_file_v2 {
 };
 ```
 
+### Boot volume structure tag
+
+This tag provides the GUID and partition GUID of the volume from which the
+kernel was loaded, if available.
+
+The GUID is the GUID provided by the filesystem on the volume from which the kernel
+is loaded.
+
+The partition GUID is the GUID associated to this volume, provided by the partition
+table, such as GPT.
+
+```c
+struct stivale2_struct_tag_boot_volume {
+    struct stivale2_tag tag;   // Identifier: 0x9b4358364c19ee62
+    uint64_t flags;            // Bit 0: GUID is valid.
+                               // Bit 1: Partition GUID is valid.
+                               // All other bits undefined.
+    struct stivale2_guid guid;       // GUID - valid if bit 0 of flags is set.
+    struct stivale2_guid part_guid;  // Partition GUID - valid if bit 1 of flags is set.
+};
+```
+
+`struct stivale2_guid` is defined as such:
+```c
+struct stivale2_guid {
+    uint32_t a;
+    uint16_t b;
+    uint16_t c;
+    uint8_t  d[8];
+};
+```
+
 ### Kernel slide structure tag
 
 This tag returns the slide that the bootloader applied over the kernel's load

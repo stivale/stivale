@@ -280,6 +280,22 @@ struct stivale2_struct_tag_kernel_file_v2 {
     uint64_t kernel_size;
 };
 
+#define STIVALE2_STRUCT_TAG_BOOT_VOLUME_ID 0x9b4358364c19ee62
+
+struct stivale2_guid {
+    uint32_t a;
+    uint16_t b;
+    uint16_t c;
+    uint8_t  d[8];
+};
+
+struct stivale2_struct_tag_boot_volume {
+    struct stivale2_tag tag;
+    uint64_t flags;
+    struct stivale2_guid guid;
+    struct stivale2_guid part_guid;
+};
+
 #define STIVALE2_STRUCT_TAG_KERNEL_SLIDE_ID 0xee80847d01506c57
 
 struct stivale2_struct_tag_kernel_slide {
