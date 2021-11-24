@@ -75,10 +75,10 @@ At entry, the bootloader will have setup paging mappings as such:
 ```
  Base Physical Address -                    Size                    ->  Virtual address
   0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0x0000000000000000
-  0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0xffff800000000000 (4-level paging only)
-  0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0xff00000000000000 (5-level paging only)
+  0x0000000000000000   - 4 GiB plus any additional memory map entry -> HHDM start
   0x0000000000000000   -                 0x80000000                 -> 0xffffffff80000000 (No PMRs only)
 ```
+Where HHDM start is returned in the Higher Half Direct Map tag (see below).
 
 All the mappings are supervisor, read, write, execute (-rwx).
 
@@ -187,9 +187,9 @@ At entry, the bootloader will have setup paging mappings as such:
 ```
  Base Physical Address -                    Size                    ->  Virtual address
   0x0000000000000000   - 4 GiB plus any additional memory map entry -> 0x0000000000000000
-  0x0000000000000000   - 4 GiB plus any additional memory map entry -> VMAP_HIGH
+  0x0000000000000000   - 4 GiB plus any additional memory map entry -> HHDM start
 ```
-Where `VMAP_HIGH` is specified in the mandatory `stivale2_struct_vmap` tag.
+Where HHDM start is returned in the Higher Half Direct Map tag (see below).
 
 If the kernel is dynamic and not statically linked, the bootloader will relocate it,
 potentially performing KASLR (as specified by the config).
@@ -499,6 +499,22 @@ The presence of this tag enables support for 5-level paging, if available.
 Identifier: `0x932f477032007e8f`
 
 This tag does not have extra members.
+
+### Slide HHDM header tag
+
+The presence of this tag tells the bootloader to add a random slide to the
+base address of the higher half direct map (HHDM).
+
+```c
+struct stivale2_header_tag_slide_hhdm {
+    struct stivale2_tag tag;      // Identifier: 0xdc29269c2af53d1d
+    uint64_t flags;               // Flags:
+                                  // All bits are undefined and must be 0.
+    uint64_t alignment;           // This value must be non-0 and must be aligned
+                                  // to 2MiB. It tells the bootloader what alignment
+                                  // the base address of the HHDM should have.
+};
+```
 
 ### Unmap NULL header tag
 
@@ -1157,13 +1173,13 @@ struct stivale2_struct_tag_dtb {
 };
 ```
 
-### High memory mapping
+### Higher half direct map structure tag
 
-This tag describes the high physical memory location (`VMAP_HIGH`)
+This tag reports the start address of the higher half direct map (HHDM).
 
 ```c
-struct stivale2_struct_vmap {
+struct stivale2_struct_tag_hhdm {
     struct stivale2_tag tag;    // Identifier: 0xb0ed257db18cb58f
-    uint64_t addr;              // VMAP_HIGH, where the physical memory is mapped in the higher half
+    uint64_t addr;              // Beginning of the HHDM (virtual address)
 };
 ```

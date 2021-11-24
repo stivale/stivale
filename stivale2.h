@@ -63,6 +63,14 @@ struct stivale2_header_tag_framebuffer {
 
 #define STIVALE2_HEADER_TAG_FB_MTRR_ID 0x4c7bb07731282e00
 
+#define STIVALE2_HEADER_TAG_SLIDE_HHDM_ID 0xdc29269c2af53d1d
+
+struct stivale2_header_tag_slide_hhdm {
+    struct stivale2_tag tag;
+    uint64_t flags;
+    _stivale2_split64(alignment);
+};
+
 #define STIVALE2_HEADER_TAG_TERMINAL_ID 0xa85d499b1823be72
 
 struct stivale2_header_tag_terminal {
@@ -353,9 +361,9 @@ struct stivale2_struct_tag_dtb {
     uint64_t size;
 };
 
-#define STIVALE2_STRUCT_TAG_VMAP 0xb0ed257db18cb58f
+#define STIVALE2_STRUCT_TAG_HHDM_ID 0xb0ed257db18cb58f
 
-struct stivale2_struct_vmap {
+struct stivale2_struct_tag_hhdm {
     struct stivale2_tag tag;
     uint64_t addr;
 };
