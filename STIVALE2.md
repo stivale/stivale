@@ -219,6 +219,17 @@ Neither floating point, SIMD nor timer accesses trap to a higher EL than 1.
 
 All other general purpose registers are undefined.
 
+### S3X0 and z/Arch
+All registers are undefined (R0 and R15 are basically "wild"). Your stack is the bootloader's stack and the max. size of it is set to 8K. Unlike other architectures, the S390 will throw a TELNET and Hercules Debug device as part of the Stivale2 terminal tags. No framebuffer is available.
+
+Since no paging is required to boot a kernel, Dynamic Address Translation is disabled and expected to be enabled by the kernel.
+
+The kernel is also expected to override the default Service, Machine Check, Program Check, External Interrupt and I/O Interruption New PSWs - those may be considered undefined and should not be relied upon.
+
+Using ASCII instead of IBM-4071 codepage (EBCDIC); Otherwise the terminal **will not work**.
+
+No vector facilities are enabled, SMP is not enabled and Floating Point support is not enabled either.
+
 ## Low memory area
 
 __THIS IS DEPRECATED, DO NOT USE. USE THE MEMORY MAP FOR THIS.__
