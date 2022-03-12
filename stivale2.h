@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+#if !defined(STIVALE_2_0) && !defined(STIVALE_2_1)
+    #error "stivale.h: failed to figure out the stivale2 minor version; define STIVALE_2_0 or STIVALE_2_1."
+#endif
+
+#ifdef STIVALE_2_0 // stivale 2.0
+    #define ARRAY(T, V) T V[];
+#else              // stivale 2.1
+    #define ARRAY(T, V) T* V;
+#endif
+
 #if (defined (_STIVALE2_SPLIT_64) && defined (__i386__)) || defined(_STIVALE2_SPLIT_64_FORCE)
 
 #define _stivale2_split64(NAME) \
@@ -132,7 +142,7 @@ struct stivale2_pmr {
 struct stivale2_struct_tag_pmrs {
     struct stivale2_tag tag;
     uint64_t entries;
-    struct stivale2_pmr pmrs[];
+    ARRAY(struct stivale2_pmr, pmrs);
 };
 
 #define STIVALE2_STRUCT_TAG_KERNEL_BASE_ADDRESS_ID 0x060d78874a2a8af0
@@ -171,7 +181,7 @@ struct stivale2_mmap_entry {
 struct stivale2_struct_tag_memmap {
     struct stivale2_tag tag;
     uint64_t entries;
-    struct stivale2_mmap_entry memmap[];
+    ARRAY(struct stivale2_mmap_entry, memmap);
 };
 
 #define STIVALE2_STRUCT_TAG_FRAMEBUFFER_ID 0x506461d2950408fa
@@ -200,7 +210,7 @@ struct stivale2_struct_tag_framebuffer {
 struct stivale2_struct_tag_edid {
     struct stivale2_tag tag;
     uint64_t edid_size;
-    uint8_t  edid_information[];
+    ARRAY(uint8_t, edid_information);
 };
 
 #define STIVALE2_STRUCT_TAG_TEXTMODE_ID 0x38d74c23e0dca893
@@ -240,7 +250,7 @@ struct stivale2_module {
 struct stivale2_struct_tag_modules {
     struct stivale2_tag tag;
     uint64_t module_count;
-    struct stivale2_module modules[];
+    ARRAY(struct stivale2_module, modules);
 };
 
 #define STIVALE2_STRUCT_TAG_RSDP_ID 0x9e1786930a375e78
@@ -336,7 +346,7 @@ struct stivale2_struct_tag_smp {
     uint32_t bsp_lapic_id;
     uint32_t unused;
     uint64_t cpu_count;
-    struct stivale2_smp_info smp_info[];
+    ARRAY(struct stivale2_smp_info, smp_info);
 };
 
 #define STIVALE2_STRUCT_TAG_PXE_SERVER_INFO 0x29d1e96239247032
