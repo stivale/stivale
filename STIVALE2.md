@@ -4,6 +4,17 @@ The stivale2 boot protocol is an improved version of the stivale protocol which
 provides the kernel with most of the features one may need in a *modern*
 x86_64 context (although 32-bit x86 is also supported).
 
+## stivale2.1
+The stivale2.1 boot protocol is an improved version of the stivale2 protocol
+with mostly the same components; hence merged into the stivale2 specficiation. This version of the protocol basically, updated the tag structures to provide a pointer to the array instead of having a VLA in the tag structure itself. This way, it is easier to grab the array as a slice in languages other then C. The specification makes use of the `ARRAY` macro which if the user is using stivale2.0, the array will be provided as a VLA and if using stivale2.1 then a pointer to the array will be provided instead. The macro is defined as following:
+```c
+#ifdef STIVALE_2_0 // stivale 2.0
+    #define ARRAY(T, V) T V[];
+#else              // stivale 2.1
+    #define ARRAY(T, V) T* V;
+#endif
+```
+
 ## General information
 
 In order to have a stivale2 compliant kernel, one must have a kernel executable,
@@ -553,7 +564,7 @@ mapped by the bootloader. Ranges bases and sizes are at least 4KiB aligned.
 struct stivale2_struct_tag_pmrs {
     struct stivale2_tag tag;      // Identifier: 0x5df266a64047b6bd
     uint64_t entries;             // Count of PMRs in following array
-    struct stivale2_pmr pmrs[];   // Array of PMR structs
+    ARRAY(struct stivale2_pmr, pmrs);   // Array of PMR structs
 };
 ```
 
@@ -621,7 +632,7 @@ This tag reports to the kernel the memory map built by the bootloader.
 struct stivale2_struct_tag_memmap {
     struct stivale2_tag tag;      // Identifier: 0x2187f79e8612de07
     uint64_t entries;             // Count of memory map entries
-    struct stivale2_mmap_entry memmap[];  // Array of memory map entries
+    ARRAY(struct stivale2_mmap_entry, memmap);  // Array of memory map entries
 };
 ```
 
@@ -711,8 +722,8 @@ This tag provides the kernel with EDID information as acquired by the firmware.
 struct stivale2_struct_tag_edid {
     struct stivale2_tag tag;      // Identifier: 0x968609d7af96b845
     uint64_t edid_size;           // The amount of bytes that make up the
-                                  // edid_information[] array
-    uint8_t  edid_information[];
+                                  // edid_information array
+    ARRAY(uint8_t, edid_information);
 };
 ```
 
@@ -942,7 +953,7 @@ This tag lists modules that the bootloader loaded alongside the kernel, if any.
 struct stivale2_struct_tag_modules {
     struct stivale2_tag tag;      // Identifier: 0x4b6fe466aade04ce
     uint64_t module_count;        // Count of loaded modules
-    struct stivale2_module modules[]; // Array of module descriptors
+    ARRAY(struct stivale2_module, modules); // Array of module descriptors
 };
 ```
 
@@ -1096,8 +1107,8 @@ struct stivale2_struct_tag_smp {
     uint32_t bsp_lapic_id;      // LAPIC ID of the BSP (bootstrap processor).
     uint32_t unused;            // Reserved for future use.
     uint64_t cpu_count;         // Total number of logical CPUs (including BSP)
-    struct stivale2_smp_info smp_info[];  // Array of smp_info structs, one per
-                                          // logical processor, including BSP.
+    ARRAY(struct stivale2_smp_info, smp_info); // Array of smp_info structs, one per
+                                               // logical processor, including BSP.
 };
 ```
 
