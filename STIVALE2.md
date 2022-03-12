@@ -4,9 +4,15 @@ The stivale2 boot protocol is an improved version of the stivale protocol which
 provides the kernel with most of the features one may need in a *modern*
 x86_64 context (although 32-bit x86 is also supported).
 
-## stivale2.1
-The stivale2.1 boot protocol is an improved version of the stivale2 protocol
-with mostly the same components; hence merged into the stivale2 specficiation. This version of the protocol basically, updates the tag structures to provide a pointer to the array instead of having a VLA in the tag structure itself. This way, it is easier to grab the array as a slice in languages other then C. The specification makes use of the `ARRAY` macro which if the user is using stivale2.0, the array will be provided as a VLA and if using stivale2.1 then a pointer to the array will be provided instead. The macro is defined as following:
+## stivale2.1 and the `ARRAY` macro
+The stivale2.1 is an improved version of the stivale2 protocol with the *same* components, hence *merged* 
+into the stivale2 specficiation. This version of the protocol updates the tag structures, that provide an 
+array at the end of the struct to provide a pointer to the array, instead of providing a VLA. This approach 
+will make the protocol more *portable* to other programming languages since it is much easier to interpret a pointer
+to an array, as a slice. On the other hand, interpreting a VLA as a slice is much more *complex* and involves
+*saftey* issues. The specification makes use of the `ARRAY` macro which if the user is using stivale2
+and the tag provides an array, the array will be provided as a VLA. On the other hand, if 
+using stivale2.1 then a pointer to the array will be provided instead. The macro is defined as following:
 ```c
 #ifdef STIVALE_2_0 // stivale 2.0
     #define ARRAY(T, V) T V[];

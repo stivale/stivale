@@ -4,7 +4,8 @@
 #include <stdint.h>
 
 #if !defined(STIVALE_2_0) && !defined(STIVALE_2_1)
-    #error "stivale.h: failed to figure out the stivale2 minor version; define STIVALE_2_0 or STIVALE_2_1."
+    #warning "stivale.h: failed to figure out the stivale2 minor version; defaulting to stivale2"
+    #define STIVALE_2_0
 #endif
 
 #ifdef STIVALE_2_0 // stivale 2.0
