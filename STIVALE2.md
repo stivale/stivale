@@ -307,6 +307,8 @@ struct stivale2_header {
                             // Bit 4: Do NOT fail to boot if low memory area could not be
                             //        allocated. THIS BIT SHOULD ALWAYS BE SET AS THIS
                             //        FUNCTIONALITY IS DEPRECATED.
+                            // Bit 5: Requests the bootloader to provide stivale2.1 compatable structures
+                            // (check out `#stivale21-and-the-array-macro` for more information).
                             // All other bits are undefined and must be 0.
 
     uint64_t tags;          // Pointer to the first tag of the linked list of
